@@ -1,52 +1,57 @@
 // lib/main.dart
 
-// 1. Importations nécessaires depuis Flutter SDK
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:hive_flutter/hive_flutter.dart'; 
+// Importations de nos fichiers
+import 'core/theme/app_theme.dart';
+import 'data/models/task.dart'; // Importation du modèle de Tâche
+import 'features/main_wrapper.dart'; // <== NOUVEL ÉCRAN CONTENEUR
+// Note: Assurez-vous d'avoir exécuté 'build_runner' et que 'task.g.dart' existe pour l'import ci-dessus.
 
-// 2. Importation du package externe pour gérer le splash screen natif
-// Assurez-vous d'avoir ajouté flutter_native_splash: ^latest_version dans pubspec.yaml
-import 'package:flutter_native_splash/flutter_native_splash.dart'; 
 
-// 3. Importation des écrans que nous avons créés localement
-// Assurez-vous que ces fichiers existent dans votre dossier lib/screens/
-import 'package:todo_work_sessions/screens/lib/screens/home_screen.dart';
-// import 'package:todo_work_sessions/screens/auth_screen.dart'; // Sera utilisé plus tard pour la connexion/inscription
-
-// Fonction principale : Point d'entrée de l'application
-void main() {
-  // --- Gestion de l'écran de démarrage ---
-  // S'assure que les bindings de widgets Flutter sont initialisés
-  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+// Fonction d'initialisation asynchrone des dépendances (Hive, etc.)
+Future<void> initDependencies() async {
+  // 1. Initialiser Hive
+  await Hive.initFlutter();
   
-  // Indique au package de conserver le splash screen natif jusqu'à ce que nous appelions FlutterNativeSplash.remove()
+  // 2. Enregistrer l'Adaptateur Task
+  if (!Hive.isAdapterRegistered(0)) {
+    Hive.registerAdapter(TaskAdapter()); 
+  }
+  
+  // 3. Ouvrir la 'Boîte' (Box) de stockage pour les tâches
+  await Hive.openBox('tasksBox');
+}
+
+
+void main() async {
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
-  // Lance l'application Flutter
+  // Exécution de l'initialisation avant de lancer l'application
+  await initDependencies();
+
   runApp(const TodoWorkSessionsApp());
 }
 
-// Le widget racine de l'application (Stateless car il ne gère pas d'état interne ici)
 class TodoWorkSessionsApp extends StatelessWidget {
   const TodoWorkSessionsApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // --- Masquage de l'écran de démarrage ---
-    // Dès que ce widget build est appelé, l'interface Flutter est prête
-    // Nous pouvons donc dire au système natif de retirer le splash screen.
+    // Retrait du splash screen natif
     FlutterNativeSplash.remove();
 
     return MaterialApp(
       title: 'Todo Work Sessions',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        // Utilisation d'une palette de couleurs cohérente
-        primarySwatch: Colors.blue,
-        // Activez ceci si vous utilisez Material 3 design (le nouveau standard)
-        useMaterial3: true, 
-      ),
-      // Définit l'écran initial de l'application
-      home: HomeScreen(), 
+      
+      // Utilisation de votre thème élégant
+      theme: AppTheme.lightTheme,
+      
+      // Le point d'entrée est maintenant le MainWrapper
+      home: const MainWrapper(), 
     );
   }
 }
