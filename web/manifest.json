@@ -1,6 +1,6 @@
 {
-    "name": "todo_work_sessions",
-    "short_name": "todo_work_sessions",
+    "name": "todoapp",
+    "short_name": "todoapp",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
