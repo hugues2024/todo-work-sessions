@@ -22,15 +22,18 @@ class WorkSessionAdapter extends TypeAdapter<WorkSession> {
       workDurationMinutes: fields[3] as int,
       breakDurationMinutes: fields[4] as int,
       createdAt: fields[5] as DateTime,
-      isCompleted: fields[6] as bool,
+      isCompleted: fields[6] as bool?,
       completedAt: fields[7] as DateTime?,
+      isRunning: fields[8] as bool?,
+      elapsedSeconds: fields[9] as int,
+      isOnBreak: fields[10] as bool?,
     )..id = fields[0] as String;
   }
 
   @override
   void write(BinaryWriter writer, WorkSession obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -46,7 +49,13 @@ class WorkSessionAdapter extends TypeAdapter<WorkSession> {
       ..writeByte(6)
       ..write(obj.isCompleted)
       ..writeByte(7)
-      ..write(obj.completedAt);
+      ..write(obj.completedAt)
+      ..writeByte(8)
+      ..write(obj.isRunning)
+      ..writeByte(9)
+      ..write(obj.elapsedSeconds)
+      ..writeByte(10)
+      ..write(obj.isOnBreak);
   }
 
   @override

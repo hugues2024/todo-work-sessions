@@ -87,108 +87,170 @@ class _TaskWidgetState extends State<TaskWidget> {
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
 
-                  /// Check icon
-                  leading: GestureDetector(
-                    onTap: () {
-                      widget.task.isCompleted = !widget.task.isCompleted;
-                      widget.task.save();
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 600),
-                      decoration: BoxDecoration(
-                          color: widget.task.isCompleted
-                              ? MyColors.primaryColor
-                              : Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.grey, width: .8)),
-                      child: const Icon(
-                        Icons.check,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
+            /// Check icon
+            leading: GestureDetector(
+              onTap: () {
+                // Marquer/démarquer la tâche comme complétée
+                widget.task.isCompleted = !widget.task.isCompleted;
+                
+                // Synchroniser toutes les étapes avec l'état de la tâche
+                for (var step in widget.task.steps) {
+                  step.isCompleted = widget.task.isCompleted;
+                  if (widget.task.isCompleted) {
+                    step.completedAt = DateTime.now();
+                  } else {
+                    step.completedAt = null;
+                  }
+                }
+                
+                widget.task.save();
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 600),
+                decoration: BoxDecoration(
+                    color: widget.task.isCompleted
+                        ? MyColors.primaryColor
+                        : Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.grey, width: .8)),
+                child: const Icon(
+                  Icons.check,
+                  color: Colors.white,
+                ),
+              ),
+            ),
 
-                  /// title of Task
-                  title: Padding(
-                    padding: const EdgeInsets.only(bottom: 5, top: 3),
-                    child: Text(
-                      taskControllerForTitle.text,
-                      style: TextStyle(
-                          color: widget.task.isCompleted
-                              ? Colors.grey.shade600
-                              : Colors.black,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                          decoration: widget.task.isCompleted
-                              ? TextDecoration.lineThrough
-                              : null),
-                    ),
-                  ),
+            /// title of Task
+            title: Padding(
+              padding: const EdgeInsets.only(bottom: 5, top: 3),
+              child: Text(
+                taskControllerForTitle.text,
+                style: TextStyle(
+                    color: widget.task.isCompleted
+                        ? Colors.grey.shade600
+                        : Colors.black,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    decoration: widget.task.isCompleted
+                        ? TextDecoration.lineThrough
+                        : null),
+              ),
+            ),
 
-                  /// Description of task
-                  subtitle: Column(
+            /// Description of task
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  taskControllerForSubtitle.text,
+                  style: TextStyle(
+                    color: widget.task.isCompleted
+                        ? Colors.grey.shade500
+                        : Colors.grey.shade600,
+                    fontWeight: FontWeight.w400,
+                    fontSize: 14,
+                    decoration: widget.task.isCompleted
+                        ? TextDecoration.lineThrough
+                        : null,
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                /// Barre de progression si des étapes existent
+                if (widget.task.steps.isNotEmpty)
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        taskControllerForSubtitle.text,
-                        style: TextStyle(
-                          color: widget.task.isCompleted
-                              ? Colors.grey.shade500
-                              : Colors.grey.shade600,
-                          fontWeight: FontWeight.w400,
-                          fontSize: 14,
-                          decoration: widget.task.isCompleted
-                              ? TextDecoration.lineThrough
-                              : null,
-                        ),
-                      ),
-
-                      /// Date & Time of Task
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Padding(
-                          padding: const EdgeInsets.only(
-                            bottom: 10,
-                            top: 10,
-                          ),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: widget.task.isCompleted
-                                  ? Colors.green.shade100
-                                  : Colors.grey.shade100,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ClipRRect(
                               borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  DateFormat('HH:mm')
-                                      .format(widget.task.createdAtTime),
-                                  style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: widget.task.isCompleted
-                                          ? Colors.green.shade700
-                                          : Colors.grey.shade700),
+                              child: LinearProgressIndicator(
+                                value: widget.task.completionPercentage / 100,
+                                minHeight: 6,
+                                backgroundColor: Colors.grey.shade200,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  widget.task.isCompleted
+                                      ? Colors.green
+                                      : MyColors.primaryColor,
                                 ),
-                                Text(
-                                  DateFormat.yMMMEd()
-                                      .format(widget.task.createdAtDate),
-                                  style: TextStyle(
-                                      fontSize: 11,
-                                      color: widget.task.isCompleted
-                                          ? Colors.green.shade600
-                                          : Colors.grey.shade600),
-                                ),
-                              ],
+                              ),
                             ),
                           ),
+                          const SizedBox(width: 8),
+                          Text(
+                            "${widget.task.completionPercentage.toInt()}%",
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: widget.task.isCompleted
+                                  ? Colors.green.shade700
+                                  : MyColors.primaryColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "${widget.task.steps.where((s) => s.isCompleted).length}/${widget.task.steps.length} étapes complétées",
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade600,
                         ),
                       ),
                     ],
-                  )),
-              ),
+                  ),
+
+                const SizedBox(height: 8),
+
+                /// Date & Time of Task
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Padding(
+                    padding: const EdgeInsets.only(
+                      bottom: 10,
+                      top: 2,
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: widget.task.isCompleted
+                            ? Colors.green.shade100
+                            : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            DateFormat('HH:mm')
+                                .format(widget.task.createdAtTime),
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: widget.task.isCompleted
+                                    ? Colors.green.shade700
+                                    : Colors.grey.shade700),
+                          ),
+                          Text(
+                            DateFormat.yMMMEd()
+                                .format(widget.task.createdAtDate),
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: widget.task.isCompleted
+                                    ? Colors.green.shade600
+                                    : Colors.grey.shade600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            )),
+                ),
               
             ],
           ),

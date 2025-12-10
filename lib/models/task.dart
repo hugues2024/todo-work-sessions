@@ -60,15 +60,64 @@ class Task extends HiveObject {
     return steps.every((step) => step.isCompleted);
   }
 
-  /// Ajouter une étape
+  /// Obtenir la date/heure de l'étape la plus tardive
+  DateTime? get latestStepDateTime {
+    if (steps.isEmpty) return null;
+    
+    DateTime? latest;
+    for (var step in steps) {
+      if (step.scheduledStartDate != null) {
+        DateTime stepDateTime = step.scheduledStartDate!;
+        
+        // Combiner avec l'heure si elle existe
+        if (step.scheduledStartTime != null) {
+          stepDateTime = DateTime(
+            stepDateTime.year,
+            stepDateTime.month,
+            stepDateTime.day,
+            step.scheduledStartTime!.hour,
+            step.scheduledStartTime!.minute,
+          );
+        }
+        
+        if (latest == null || stepDateTime.isAfter(latest)) {
+          latest = stepDateTime;
+        }
+      }
+    }
+    
+    return latest;
+  }
+
+  /// Mettre à jour la date et l'heure de la tâche en fonction de l'étape la plus tardive
+  void updateTaskDateTime() {
+    final latest = latestStepDateTime;
+    if (latest != null) {
+      createdAtDate = latest;
+      createdAtTime = latest;
+    }
+  }
+
+  /// Ajouter une étape et mettre à jour la tâche
   void addStep(TaskStep step) {
     steps.add(step);
+    updateTaskDateTime();
+    updateCompletionStatus();
     save();
   }
 
-  /// Supprimer une étape
+  /// Supprimer une étape et mettre à jour la tâche
   void removeStep(TaskStep step) {
     steps.remove(step);
+    updateTaskDateTime();
+    updateCompletionStatus();
+    save();
+  }
+
+  /// Mettre à jour une étape existante
+  void updateStep(TaskStep step) {
+    updateTaskDateTime();
+    updateCompletionStatus();
     save();
   }
 
@@ -77,7 +126,6 @@ class Task extends HiveObject {
     if (steps.isNotEmpty) {
       isCompleted = allStepsCompleted;
     }
-    save();
   }
 
   /// create new Task 
@@ -87,14 +135,22 @@ class Task extends HiveObject {
     DateTime? createdAtTime,
     DateTime? createdAtDate,
     List<TaskStep>? steps,
-  }) =>
-      Task(
-        id: const Uuid().v1(),
-        title: title ?? "",
-        subtitle: subtitle ?? "",
-        createdAtTime: createdAtTime ?? DateTime.now(),
-        isCompleted: false,
-        createdAtDate: createdAtDate ?? DateTime.now(),
-        steps: steps ?? [],
-      );
+  }) {
+    final task = Task(
+      id: const Uuid().v1(),
+      title: title ?? "",
+      subtitle: subtitle ?? "",
+      createdAtTime: createdAtTime ?? DateTime.now(),
+      isCompleted: false,
+      createdAtDate: createdAtDate ?? DateTime.now(),
+      steps: steps ?? [],
+    );
+    
+    // Mettre à jour la date/heure si des étapes existent
+    if (steps != null && steps.isNotEmpty) {
+      task.updateTaskDateTime();
+    }
+    
+    return task;
+  }
 }

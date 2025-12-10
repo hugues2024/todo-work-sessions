@@ -26,10 +26,19 @@ class WorkSession extends HiveObject {
   late DateTime createdAt; // Date de création
 
   @HiveField(6)
-  late bool isCompleted; // Session terminée
+  bool? isCompleted;
 
   @HiveField(7)
   DateTime? completedAt; // Date de complétion
+
+  @HiveField(8)
+  bool? isRunning; // Le chronomètre est en cours
+
+  @HiveField(9)
+  int elapsedSeconds; // Secondes écoulées
+
+  @HiveField(10)
+  bool? isOnBreak; // En pause ou en travail
 
   WorkSession({
     required this.title,
@@ -39,6 +48,9 @@ class WorkSession extends HiveObject {
     required this.createdAt,
     this.isCompleted = false,
     this.completedAt,
+    this.isRunning = false,
+    this.elapsedSeconds = 0,
+    this.isOnBreak = false,
   }) : id = const Uuid().v4();
 
   // Constructeur pour faciliter l'ajout
@@ -55,6 +67,25 @@ class WorkSession extends HiveObject {
       breakDurationMinutes: breakDurationMinutes,
       createdAt: DateTime.now(),
       isCompleted: false,
+      isRunning: false,
+      elapsedSeconds: 0,
+      isOnBreak: false,
     );
   }
+
+  // Obtenir le temps restant
+  int getRemainingSeconds() {
+    final bool onBreak = isOnBreak ?? false;
+
+    int totalDuration = onBreak ? breakDurationMinutes * 60 : workDurationMinutes * 60;
+    return totalDuration - elapsedSeconds;
+  }
+
+  double getProgress() {
+    final bool onBreak = isOnBreak ?? false;
+
+    int totalDuration = onBreak ? breakDurationMinutes * 60 : workDurationMinutes * 60;
+    return elapsedSeconds / totalDuration;
+  }
+
 }

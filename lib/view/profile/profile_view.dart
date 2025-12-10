@@ -53,7 +53,8 @@ class ProfileView extends StatelessWidget {
                 const SizedBox(height: 30),
                 ElevatedButton.icon(
                   onPressed: () {
-                    Navigator.of(context).pushNamed('/login');
+                    // Navigation vers la page de login
+                    Navigator.of(context).pushReplacementNamed('/');
                   },
                   icon: const Icon(Icons.login, color: Colors.white),
                   label: const Text("Se connecter", style: TextStyle(color: Colors.white)),

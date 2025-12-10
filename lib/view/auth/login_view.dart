@@ -81,7 +81,7 @@ class _LoginViewState extends State<LoginView> {
                 // Logo
                 FadeInDown(
                   child: Image.asset(
-                    'assets/img/logo.png',
+                    'assets/img/main.png',
                     height: 120,
                   ),
                 ),
