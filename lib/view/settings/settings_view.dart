@@ -113,6 +113,22 @@ class SettingsView extends StatelessWidget {
                   // base.dataStore.sessionBox.clear();
                   // Navigator.of(context).pop();
                 },
+              ),
+              const Divider(),
+
+              // 4. Déconnexion
+              ListTile(
+                leading: const Icon(Icons.logout, color: Colors.red),
+                title: const Text("Se déconnecter"),
+                subtitle: const Text("Vous devrez vous reconnecter."),
+                onTap: () async {
+                  await base.dataStore.logout();
+                  // Retour à l'écran de connexion
+                  Navigator.of(context).pushNamedAndRemoveUntil(
+                    '/',
+                    (route) => false,
+                  );
+                },
               )
             ],
           ),

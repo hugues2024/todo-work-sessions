@@ -10,10 +10,13 @@ import 'package:hive_flutter/hive_flutter.dart';
 ///
 import '../data/hive_data_store.dart';
 import '../models/task.dart';
+import '../models/task_step.dart'; // Import added
 import '../models/user_profile.dart'; 
-import '../models/work_session.dart'; 
+import '../models/work_session.dart';
+import '../models/user_auth.dart';
 import '../utils/colors.dart'; // Importez MyColors
 import '../view/home/home_view.dart';
+import '../view/auth/login_view.dart';
 
 Future<void> main() async {
   /// Initial Hive DB
@@ -21,24 +24,24 @@ Future<void> main() async {
 
   // --- 1. ENREGISTREMENT DES ADAPTATEURS ---
   Hive.registerAdapter<Task>(TaskAdapter());
-  Hive.registerAdapter<UserProfile>(UserProfileAdapter()); // 👈 AJOUTÉ
-  Hive.registerAdapter<WorkSession>(WorkSessionAdapter()); // 👈 AJOUTÉ
+  Hive.registerAdapter<TaskStep>(TaskStepAdapter()); // TaskStep adapter registered
+  Hive.registerAdapter<UserProfile>(UserProfileAdapter());
+  Hive.registerAdapter<WorkSession>(WorkSessionAdapter());
+  Hive.registerAdapter<UserAuth>(UserAuthAdapter());
 
   /// Open boxes
   var taskBox = await Hive.openBox<Task>("tasksBox");
   await Hive.openBox<UserProfile>("userProfileBox"); 
-  await Hive.openBox<WorkSession>("workSessionsBox"); 
-  
-  /// Delete data from previous day
-  // ignore: avoid_function_literals_in_foreach_calls
-  taskBox.values.forEach((task) { // Utilisation de taskBox au lieu de box
-    // NOTE: Il est plus sûr de comparer la date de l'an dernier aussi, mais nous conservons la logique d'origine
-    if (task.createdAtTime.day != DateTime.now().day) { 
-      // NOTE IMPORTANTE: Utilisez deleteTask de HiveDataStore si vous voulez déclencher une mise à jour de l'UI
-      // Mais pour la purge au démarrage, la méthode de Hive est suffisante.
-      task.delete();
-    }
-  });
+  await Hive.openBox<WorkSession>("workSessionsBox");
+  await Hive.openBox<UserAuth>("userAuthBox"); 
+
+  /// Delete data from previous day - DÉSACTIVÉ pour conserver toutes les tâches
+  // Si vous voulez réactiver la suppression automatique des anciennes tâches :
+  // taskBox.values.forEach((task) {
+  //   if (task.createdAtTime.day != DateTime.now().day) { 
+  //     task.delete();
+  //   }
+  // });
 
   runApp(BaseWidget(child: const MyApp()));
 }
@@ -69,27 +72,30 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final base = BaseWidget.of(context);
-    
+
     // --- 2. ÉCOUTE DE L'ÉTAT DU PROFIL POUR LE THÈME ---
     return ValueListenableBuilder<Box<UserProfile>>(
       valueListenable: base.dataStore.listenToUserProfile(),
       builder: (context, box, child) {
-        
+
         // Récupère le mode de thème stocké dans le profil (ou le profil par défaut)
         final UserProfile profile = box.isNotEmpty 
             ? box.getAt(0)! 
             : UserProfile.defaultProfile();
-            
+
         // 0 = Clair (par défaut), 1 = Sombre
         ThemeMode currentThemeMode = profile.themeMode == 1 ? ThemeMode.dark : ThemeMode.light;
+
+        // Vérifier si l'utilisateur est connecté
+        final bool isLoggedIn = base.dataStore.isUserLoggedIn();
 
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'Todo Work Sessions',
-          
+
           // Applique le mode de thème (Clair/Sombre)
           themeMode: currentThemeMode, 
-          
+
           // --- 3. THÈME CLAIR (ThemeData) ---
           theme: ThemeData(
             primaryColor: MyColors.primaryColor,
@@ -115,7 +121,7 @@ class MyApp extends StatelessWidget {
               // ... autres styles...
             ),
           ),
-          
+
           // --- 4. THÈME SOMBRE (darkTheme) ---
           darkTheme: ThemeData(
             brightness: Brightness.dark,
@@ -149,7 +155,9 @@ class MyApp extends StatelessWidget {
               ),
             ),
           ),
-          
+
+          // L'authentification n'est pas obligatoire pour utiliser l'application
+          // Seules certaines pages (profil, etc.) nécessitent une connexion
           home: const HomeView(),
         );
       },

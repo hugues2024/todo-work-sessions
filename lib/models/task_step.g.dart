@@ -1,50 +1,47 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'task.dart';
+part of 'task_step.dart';
 
 // **************************************************************************
 // TypeAdapterGenerator
 // **************************************************************************
 
-class TaskAdapter extends TypeAdapter<Task> {
+class TaskStepAdapter extends TypeAdapter<TaskStep> {
   @override
-  final int typeId = 0;
+  final int typeId = 5;
 
   @override
-  Task read(BinaryReader reader) {
+  TaskStep read(BinaryReader reader) {
     final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return Task(
+    return TaskStep(
       id: fields[0] as String,
       title: fields[1] as String,
-      subtitle: fields[2] as String,
-      createdAtTime: fields[3] as DateTime,
-      createdAtDate: fields[4] as DateTime,
-      isCompleted: fields[5] as bool,
-      steps: (fields[6] as List?)?.cast<TaskStep>(),
+      isCompleted: fields[2] as bool,
+      scheduledStartDate: fields[3] as DateTime?,
+      scheduledStartTime: fields[4] as DateTime?,
+      completedAt: fields[5] as DateTime?,
     );
   }
 
   @override
-  void write(BinaryWriter writer, Task obj) {
+  void write(BinaryWriter writer, TaskStep obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(6)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
       ..write(obj.title)
       ..writeByte(2)
-      ..write(obj.subtitle)
-      ..writeByte(3)
-      ..write(obj.createdAtTime)
-      ..writeByte(4)
-      ..write(obj.createdAtDate)
-      ..writeByte(5)
       ..write(obj.isCompleted)
-      ..writeByte(6)
-      ..write(obj.steps);
+      ..writeByte(3)
+      ..write(obj.scheduledStartDate)
+      ..writeByte(4)
+      ..write(obj.scheduledStartTime)
+      ..writeByte(5)
+      ..write(obj.completedAt);
   }
 
   @override
@@ -53,7 +50,7 @@ class TaskAdapter extends TypeAdapter<Task> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is TaskAdapter &&
+      other is TaskStepAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

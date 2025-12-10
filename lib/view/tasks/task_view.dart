@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 ///
 import '../../main.dart';
 import '../../models/task.dart';
+import '../../models/task_step.dart';
 import '../../utils/colors.dart';
 import '../../utils/constanst.dart';
 import '../../utils/strings.dart';
@@ -35,6 +36,8 @@ class _TaskViewState extends State<TaskView> {
   var subtitle;
   DateTime? time;
   DateTime? date;
+  List<TaskStep> steps = [];
+  final TextEditingController _stepController = TextEditingController();
 
   @override
   void initState() {
@@ -44,17 +47,28 @@ class _TaskViewState extends State<TaskView> {
     subtitle = widget.task?.subtitle;
     time = widget.task?.createdAtTime;
     date = widget.task?.createdAtDate;
+    steps = widget.task?.steps ?? [];
+
+    // Normaliser les contrôleurs si édition
+    if (widget.task != null) {
+      widget.taskControllerForTitle?.text = widget.task?.title ?? "";
+      widget.taskControllerForSubtitle?.text = widget.task?.subtitle ?? "";
+    }
   }
+
+  @override
+  void dispose() {
+    _stepController.dispose();
+    super.dispose();
+  }
+
+  /// Vérifier si c'est une nouvelle tâche
+  bool get isNewTask => widget.task == null;
 
   /// Show Selected Time As String Format
   String showTime(DateTime? time) {
     DateTime displayTime = time ?? widget.task?.createdAtTime ?? DateTime.now();
     return DateFormat('hh:mm a').format(displayTime).toString();
-  }
-
-  /// Show Selected Time As DateTime Format
-  DateTime showTimeAsDateTime(DateTime? time) {
-    return time ?? widget.task?.createdAtTime ?? DateTime.now();
   }
 
   /// Show Selected Date As String Format
@@ -63,46 +77,32 @@ class _TaskViewState extends State<TaskView> {
     return DateFormat.yMMMEd().format(displayDate).toString();
   }
 
-  // Show Selected Date As DateTime Format
-  DateTime showDateAsDateTime(DateTime? date) {
-    return date ?? widget.task?.createdAtDate ?? DateTime.now();
-  }
-
-  /// If any Task Already exist return TRUE otherWise FALSE
-  bool isTaskAlreadyExistBool() {
-    // La logique d'existence doit se baser sur l'objet Task passé ou les contrôleurs non nuls
-    // Utiliser `widget.task != null` est plus sûr pour vérifier si on est en mode édition.
-    return widget.task == null;
-  }
-
   /// If any task already exist app will update it otherwise the app will add a new task
-  dynamic isTaskAlreadyExistUpdateTask() {
-    // Si nous sommes en mode édition (widget.task est non null)
+  dynamic saveOrUpdateTask() {
     if (widget.task != null) {
-      if (title != widget.task?.title || subtitle != widget.task?.subtitle || time != widget.task?.createdAtTime || date != widget.task?.createdAtDate) {
-        try {
-          widget.task?.title = title ?? widget.taskControllerForTitle?.text;
-          widget.task?.subtitle = subtitle ?? widget.taskControllerForSubtitle?.text;
-          widget.task?.createdAtTime = time!;
-          widget.task?.createdAtDate = date!;
+      // Mode édition
+      try {
+        widget.task?.title = title ?? widget.taskControllerForTitle?.text;
+        widget.task?.subtitle = subtitle ?? widget.taskControllerForSubtitle?.text;
+        widget.task?.createdAtTime = time!;
+        widget.task?.createdAtDate = date!;
+        widget.task?.steps = steps;
+        widget.task?.updateCompletionStatus();
 
-          widget.task?.save();
-          Navigator.of(context).pop();
-        } catch (error) {
-          nothingEnterOnUpdateTaskMode(context);
-        }
-      } else {
-        nothingEnterOnUpdateTaskMode(context); // Rien n'a été modifié
+        widget.task?.save();
+        Navigator.of(context).pop();
+      } catch (error) {
+        nothingEnterOnUpdateTaskMode(context);
       }
     } else {
-      // Mode Ajout de Nouvelle Tâche
-      // On utilise les valeurs des variables d'état (title/subtitle) qui sont mises à jour par onChanged
+      // Mode Ajout
       if (title != null && subtitle != null && title!.isNotEmpty && subtitle!.isNotEmpty) {
         var task = Task.create(
           title: title,
           createdAtTime: time ?? DateTime.now(),
           createdAtDate: date ?? DateTime.now(),
           subtitle: subtitle,
+          steps: steps,
         );
         BaseWidget.of(context).dataStore.addTask(task: task);
         Navigator.of(context).pop();
@@ -115,6 +115,25 @@ class _TaskViewState extends State<TaskView> {
   /// Delete Selected Task
   dynamic deleteTask() {
     return widget.task?.delete();
+  }
+
+  /// InputDecoration moderne
+  InputDecoration modernInput(String hint, {Widget? prefixIcon}) {
+    return InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: Colors.grey.shade100,
+      contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+      prefixIcon: prefixIcon,
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: MyColors.primaryColor, width: 1.8),
+      ),
+    );
   }
 
   @override
@@ -138,8 +157,7 @@ class _TaskViewState extends State<TaskView> {
                   _buildTopText(textTheme),
 
                   /// Middle Two TextFileds, Time And Date Selection Box
-                  _buildMiddleTextFieldsANDTimeAndDateSelection(
-                      context, textTheme),
+                  _buildMiddleTextFieldsANDTimeAndDateSelection(context, textTheme),
 
                   /// All Bottom Buttons
                   _buildBottomButtons(context),
@@ -157,70 +175,38 @@ class _TaskViewState extends State<TaskView> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Row(
-        mainAxisAlignment: isTaskAlreadyExistBool()
+        mainAxisAlignment: isNewTask
             ? MainAxisAlignment.center
             : MainAxisAlignment.spaceEvenly,
         children: [
-          isTaskAlreadyExistBool()
-              ? Container()
-
-              /// Delete Task Button
-              : Container(
-                  width: 150,
-                  height: 55,
-                  decoration: BoxDecoration(
-                      border:
-                          Border.all(color: MyColors.primaryColor, width: 2),
-                      borderRadius: BorderRadius.circular(15)),
-                  child: MaterialButton(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    minWidth: 150,
-                    height: 55,
-                    onPressed: () {
-                      deleteTask();
-                      Navigator.pop(context);
-                    },
-                    color: Colors.white,
-                    child: Row(
-                      children: const [
-                        Icon(
-                          Icons.close,
-                          color: MyColors.primaryColor,
-                        ),
-                        SizedBox(
-                          width: 5,
-                        ),
-                        Text(
-                          MyString.deleteTask,
-                          style: TextStyle(
-                            color: MyColors.primaryColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+          if (!isNewTask)
+            OutlinedButton.icon(
+              icon: const Icon(Icons.delete_outline, color: MyColors.primaryColor),
+              label: const Text(MyString.deleteTask, style: TextStyle(color: MyColors.primaryColor)),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(150, 55),
+                side: const BorderSide(color: MyColors.primaryColor, width: 2),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              onPressed: () {
+                deleteTask();
+                Navigator.pop(context);
+              },
+            ),
 
           /// Add or Update Task Button
-          MaterialButton(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15),
-            ),
-            minWidth: 150,
-            height: 55,
-            onPressed: () {
-              isTaskAlreadyExistUpdateTask();
-            },
-            color: MyColors.primaryColor,
-            child: Text(
-              isTaskAlreadyExistBool()
-                  ? MyString.addTaskString
-                  : MyString.updateTaskString,
-              style: const TextStyle(
-                color: Colors.white,
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: MyColors.primaryColor,
+              minimumSize: const Size(150, 55),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
               ),
+            ),
+            onPressed: saveOrUpdateTask,
+            child: Text(
+              isNewTask ? MyString.addTaskString : MyString.updateTaskString,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
             ),
           ),
         ],
@@ -233,77 +219,59 @@ class _TaskViewState extends State<TaskView> {
       BuildContext context, TextTheme textTheme) {
     return SizedBox(
       width: double.infinity,
-      height: 535,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           /// Title of TextFiled
           Padding(
-            padding: const EdgeInsets.only(left: 30),
-            child: Text(MyString.titleOfTitleTextField,
-                style: textTheme.headlineMedium),
+            padding: const EdgeInsets.only(left: 30, top: 10),
+            child: Text(MyString.titleOfTitleTextField, style: textTheme.headlineMedium),
           ),
 
           /// Title TextField
           Container(
             width: MediaQuery.of(context).size.width,
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            child: ListTile(
-              title: TextFormField(
-                controller: widget.taskControllerForTitle,
-                maxLines: 6,
-                cursorHeight: 60,
-                style: const TextStyle(color: Colors.black),
-                decoration: InputDecoration(
-                  enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  focusedBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                ),
-                onFieldSubmitted: (value) {
-                  setState(() {
-                    title = value;
-                  });
-                  FocusManager.instance.primaryFocus?.unfocus();
-                },
-                onChanged: (value) {
+            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: TextFormField(
+              controller: widget.taskControllerForTitle,
+              maxLines: 3,
+              style: const TextStyle(color: Colors.black),
+              decoration: modernInput("Ex: Terminer le rapport"),
+              onFieldSubmitted: (value) {
+                setState(() {
                   title = value;
-                },
-              ),
+                });
+                FocusManager.instance.primaryFocus?.unfocus();
+              },
+              onChanged: (value) {
+                title = value;
+              },
             ),
           ),
 
-          const SizedBox(
-            height: 10,
-          ),
+          const SizedBox(height: 10),
 
           /// Note TextField
           Container(
             width: MediaQuery.of(context).size.width,
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            child: ListTile(
-              title: TextFormField(
-                controller: widget.taskControllerForSubtitle,
-                style: const TextStyle(color: Colors.black),
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.bookmark_border, color: Colors.grey),
-                  border: InputBorder.none,
-                  counter: Container(),
-                  hintText: MyString.addNote,
-                ),
-                onFieldSubmitted: (value) {
-                  setState(() {
-                    subtitle = value;
-                  });
-                },
-                onChanged: (value) {
+            margin: const EdgeInsets.symmetric(horizontal: 20),
+            child: TextFormField(
+              controller: widget.taskControllerForSubtitle,
+              maxLines: 3,
+              style: const TextStyle(color: Colors.black),
+              decoration: modernInput(MyString.addNote, prefixIcon: const Icon(Icons.bookmark_border, color: Colors.grey)),
+              onFieldSubmitted: (value) {
+                setState(() {
                   subtitle = value;
-                },
-              ),
+                });
+              },
+              onChanged: (value) {
+                subtitle = value;
+              },
             ),
           ),
+
+          const SizedBox(height: 20),
 
           /// Time Picker
           GestureDetector(
@@ -315,39 +283,45 @@ class _TaskViewState extends State<TaskView> {
                 setState(() {
                   time = selectedTime;
                 });
-
                 FocusManager.instance.primaryFocus?.unfocus();
-              }, currentTime: showTimeAsDateTime(time));
+              }, currentTime: time ?? DateTime.now());
             },
-            child: Container(
-              margin: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              margin: const EdgeInsets.fromLTRB(20, 10, 20, 10),
               width: double.infinity,
               height: 55,
               decoration: BoxDecoration(
                 color: Colors.white,
                 border: Border.all(color: Colors.grey.shade300, width: 1),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    spreadRadius: 1,
+                    blurRadius: 5,
+                  ),
+                ],
               ),
               child: Row(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.only(left: 10),
-                    child:
-                        Text(MyString.timeString, style: textTheme.headlineSmall),
+                    padding: const EdgeInsets.only(left: 15),
+                    child: Icon(Icons.access_time, color: MyColors.primaryColor),
                   ),
+                  const SizedBox(width: 10),
+                  Text(MyString.timeString, style: textTheme.headlineSmall),
                   Expanded(child: Container()),
                   Container(
                     margin: const EdgeInsets.only(right: 10),
-                    width: 80,
-                    height: 35,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        color: Colors.grey.shade100),
-                    child: Center(
-                      child: Text(
-                        showTime(time),
-                        style: textTheme.titleSmall,
-                      ),
+                      borderRadius: BorderRadius.circular(10),
+                      color: MyColors.primaryColor.withOpacity(0.1),
+                    ),
+                    child: Text(
+                      showTime(time),
+                      style: textTheme.titleSmall?.copyWith(color: MyColors.primaryColor),
                     ),
                   )
                 ],
@@ -361,51 +335,175 @@ class _TaskViewState extends State<TaskView> {
               DatePicker.showDatePicker(context,
                   showTitleActions: true,
                   minTime: DateTime.now(),
-                  maxTime: DateTime(2030, 3, 5),
+                  maxTime: DateTime(2030, 12, 31),
                   onChanged: (_) {}, onConfirm: (selectedDate) {
                 setState(() {
                   date = selectedDate;
                 });
                 FocusManager.instance.primaryFocus?.unfocus();
-              }, currentTime: showDateAsDateTime(date));
+              }, currentTime: date ?? DateTime.now());
             },
-            child: Container(
-              margin: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              margin: const EdgeInsets.fromLTRB(20, 10, 20, 20),
               width: double.infinity,
               height: 55,
               decoration: BoxDecoration(
                 color: Colors.white,
                 border: Border.all(color: Colors.grey.shade300, width: 1),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    spreadRadius: 1,
+                    blurRadius: 5,
+                  ),
+                ],
               ),
               child: Row(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.only(left: 10),
-                    child:
-                        Text(MyString.dateString, style: textTheme.headlineSmall),
+                    padding: const EdgeInsets.only(left: 15),
+                    child: Icon(Icons.calendar_today, color: MyColors.primaryColor),
                   ),
+                  const SizedBox(width: 10),
+                  Text(MyString.dateString, style: textTheme.headlineSmall),
                   Expanded(child: Container()),
                   Container(
                     margin: const EdgeInsets.only(right: 10),
-                    width: 140,
-                    height: 35,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        color: Colors.grey.shade100),
-                    child: Center(
-                      child: Text(
-                        showDate(date),
-                        style: textTheme.titleSmall,
-                      ),
+                      borderRadius: BorderRadius.circular(10),
+                      color: MyColors.primaryColor.withOpacity(0.1),
+                    ),
+                    child: Text(
+                      showDate(date),
+                      style: textTheme.titleSmall?.copyWith(color: MyColors.primaryColor),
                     ),
                   )
                 ],
               ),
             ),
-          )
+          ),
+
+          /// Section Étapes
+          _buildStepsSection(textTheme),
         ],
       ),
+    );
+  }
+
+  /// Section pour gérer les étapes de la tâche
+  Widget _buildStepsSection(TextTheme textTheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 30, top: 10),
+          child: Row(
+            children: [
+              Text("Étapes de réalisation", style: textTheme.headlineMedium),
+              const SizedBox(width: 10),
+              if (steps.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: MyColors.primaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    "${steps.where((s) => s.isCompleted).length}/${steps.length}",
+                    style: textTheme.bodySmall?.copyWith(color: MyColors.primaryColor),
+                  ),
+                ),
+            ],
+          ),
+        ),
+
+        /// Liste des étapes
+        if (steps.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: steps.length,
+              itemBuilder: (context, index) {
+                final step = steps[index];
+                return ListTile(
+                  leading: Checkbox(
+                    value: step.isCompleted,
+                    onChanged: (value) {
+                      setState(() {
+                        step.isCompleted = value ?? false;
+                      });
+                    },
+                    activeColor: MyColors.primaryColor,
+                  ),
+                  title: Text(
+                    step.title,
+                    style: TextStyle(
+                      decoration: step.isCompleted ? TextDecoration.lineThrough : null,
+                    ),
+                  ),
+                  subtitle: step.scheduledStartDate != null
+                      ? Text(
+                          "Début: ${DateFormat.yMd().format(step.scheduledStartDate!)} ${step.scheduledStartTime != null ? DateFormat('HH:mm').format(step.scheduledStartTime!) : ''}",
+                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                        )
+                      : null,
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    onPressed: () {
+                      setState(() {
+                        steps.removeAt(index);
+                      });
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+
+        /// Ajouter une étape
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _stepController,
+                  decoration: modernInput("Nouvelle étape", prefixIcon: const Icon(Icons.format_list_numbered, color: Colors.grey)),
+                ),
+              ),
+              const SizedBox(width: 10),
+              IconButton(
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: MyColors.primaryColor,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.add, color: Colors.white),
+                ),
+                onPressed: () {
+                  if (_stepController.text.trim().isNotEmpty) {
+                    setState(() {
+                      steps.add(TaskStep.create(title: _stepController.text.trim()));
+                      _stepController.clear();
+                    });
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+      ],
     );
   }
 
@@ -413,79 +511,34 @@ class _TaskViewState extends State<TaskView> {
   SizedBox _buildTopText(TextTheme textTheme) {
     return SizedBox(
       width: double.infinity,
-      height: 100,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const SizedBox(
-            width: 70,
-            child: Divider(
-              thickness: 2,
-            ),
-          ),
-          RichText(
-            text: TextSpan(
-                text: isTaskAlreadyExistBool()
-                    ? MyString.addNewTask
-                    : MyString.updateCurrentTask,
-                style: textTheme.titleLarge,
-                children: const [
-                  TextSpan(
-                    text: MyString.taskStrnig,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w400,
-                    ),
-                  )
-                ]),
-          ),
-          const SizedBox(
-            width: 70,
-            child: Divider(
-              thickness: 2,
-            ),
-          ),
-        ],
+      height: 80,
+      child: Center(
+        child: Text(
+          isNewTask ? MyString.addNewTask : MyString.updateCurrentTask,
+          style: textTheme.titleLarge,
+        ),
       ),
     );
   }
 }
 
-/// AppBar
+/// AppBar moderne
 class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const MyAppBar({
-    Key? key,
-  }) : super(key: key);
+  const MyAppBar({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 150,
-      child: Padding(
-        padding: const EdgeInsets.only(top: 20),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(left: 20),
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  size: 50,
-                ),
-              ),
-            ),
-          ],
-        ),
+    return AppBar(
+      elevation: 0,
+      backgroundColor: Colors.white,
+      foregroundColor: Colors.black87,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 22),
+        onPressed: () => Navigator.pop(context),
       ),
     );
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(100);
+  Size get preferredSize => const Size.fromHeight(56);
 }

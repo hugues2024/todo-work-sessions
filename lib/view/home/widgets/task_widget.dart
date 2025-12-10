@@ -50,112 +50,149 @@ class _TaskWidgetState extends State<TaskWidget> {
         );
       },
 
-      /// Main Card
+      /// Main Card - Style Material 3 modernisé
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 600),
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
             color: widget.task.isCompleted
-                ? const Color.fromARGB(154, 119, 144, 229)
+                ? Colors.green.shade50
                 : Colors.white,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                  color: Colors.black.withOpacity(.1),
+                  color: Colors.black.withOpacity(.08),
                   offset: const Offset(0, 4),
-                  blurRadius: 10)
+                  blurRadius: 20,
+                  spreadRadius: -5)
             ]),
-        child: ListTile(
-
-            /// Check icon
-            leading: GestureDetector(
-              onTap: () {
-                widget.task.isCompleted = !widget.task.isCompleted;
-                widget.task.save();
-              },
-              child: AnimatedContainer(
+        child: IntrinsicHeight(
+          child: Row(
+            children: [
+              /// Barre verticale colorée selon le statut
+              AnimatedContainer(
                 duration: const Duration(milliseconds: 600),
+                width: 5,
                 decoration: BoxDecoration(
-                    color: widget.task.isCompleted
-                        ? MyColors.primaryColor
-                        : Colors.white,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.grey, width: .8)),
-                child: const Icon(
-                  Icons.check,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-
-            /// title of Task
-            title: Padding(
-              padding: const EdgeInsets.only(bottom: 5, top: 3),
-              child: Text(
-                taskControllerForTitle.text,
-                style: TextStyle(
-                    color: widget.task.isCompleted
-                        ? MyColors.primaryColor
-                        : Colors.black,
-                    fontWeight: FontWeight.w500,
-                    decoration: widget.task.isCompleted
-                        ? TextDecoration.lineThrough
-                        : null),
-              ),
-            ),
-
-            /// Description of task
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  taskControllerForSubtitle.text,
-                  style: TextStyle(
-                    color: widget.task.isCompleted
-                        ? MyColors.primaryColor
-                        : const Color.fromARGB(255, 164, 164, 164),
-                    fontWeight: FontWeight.w300,
-                    decoration: widget.task.isCompleted
-                        ? TextDecoration.lineThrough
-                        : null,
+                  color: widget.task.isCompleted
+                      ? Colors.green
+                      : MyColors.primaryColor,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    bottomLeft: Radius.circular(16),
                   ),
                 ),
+              ),
+              Expanded(
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
 
-                /// Date & Time of Task
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Padding(
-                    padding: const EdgeInsets.only(
-                      bottom: 10,
-                      top: 10,
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          DateFormat('hh:mm a')
-                              .format(widget.task.createdAtTime),
-                          style: TextStyle(
-                              fontSize: 14,
-                              color: widget.task.isCompleted
-                                  ? Colors.white
-                                  : Colors.grey),
-                        ),
-                        Text(
-                          DateFormat.yMMMEd()
-                              .format(widget.task.createdAtDate),
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: widget.task.isCompleted
-                                  ? Colors.white
-                                  : Colors.grey),
-                        ),
-                      ],
+                  /// Check icon
+                  leading: GestureDetector(
+                    onTap: () {
+                      widget.task.isCompleted = !widget.task.isCompleted;
+                      widget.task.save();
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 600),
+                      decoration: BoxDecoration(
+                          color: widget.task.isCompleted
+                              ? MyColors.primaryColor
+                              : Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.grey, width: .8)),
+                      child: const Icon(
+                        Icons.check,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            )),
+
+                  /// title of Task
+                  title: Padding(
+                    padding: const EdgeInsets.only(bottom: 5, top: 3),
+                    child: Text(
+                      taskControllerForTitle.text,
+                      style: TextStyle(
+                          color: widget.task.isCompleted
+                              ? Colors.grey.shade600
+                              : Colors.black,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                          decoration: widget.task.isCompleted
+                              ? TextDecoration.lineThrough
+                              : null),
+                    ),
+                  ),
+
+                  /// Description of task
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        taskControllerForSubtitle.text,
+                        style: TextStyle(
+                          color: widget.task.isCompleted
+                              ? Colors.grey.shade500
+                              : Colors.grey.shade600,
+                          fontWeight: FontWeight.w400,
+                          fontSize: 14,
+                          decoration: widget.task.isCompleted
+                              ? TextDecoration.lineThrough
+                              : null,
+                        ),
+                      ),
+
+                      /// Date & Time of Task
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Padding(
+                          padding: const EdgeInsets.only(
+                            bottom: 10,
+                            top: 10,
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: widget.task.isCompleted
+                                  ? Colors.green.shade100
+                                  : Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  DateFormat('HH:mm')
+                                      .format(widget.task.createdAtTime),
+                                  style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: widget.task.isCompleted
+                                          ? Colors.green.shade700
+                                          : Colors.grey.shade700),
+                                ),
+                                Text(
+                                  DateFormat.yMMMEd()
+                                      .format(widget.task.createdAtDate),
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      color: widget.task.isCompleted
+                                          ? Colors.green.shade600
+                                          : Colors.grey.shade600),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )),
+              ),
+              
+            ],
+          ),
+        ),
       ),
     );
   }

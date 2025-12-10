@@ -110,52 +110,103 @@ class _HomeViewState extends State<HomeView> {
       height: double.infinity,
       child: Column(
         children: [
-          /// Top Section Of Home page : Text, Progrss Indicator
-          Container(
-            margin: const EdgeInsets.fromLTRB(55, 0, 0, 0),
-            width: double.infinity,
-            height: 100,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                /// CircularProgressIndicator
-                SizedBox(
-                  width: 25,
-                  height: 25,
-                  child: CircularProgressIndicator(
-                    valueColor: const AlwaysStoppedAnimation(MyColors.primaryColor),
-                    backgroundColor: Colors.grey,
-                    value: checkDoneTask(tasks) / valueOfTheIndicator(tasks),
+          /// Top Section Of Home page : Header modernisé avec carte
+          FadeInDown(
+            duration: const Duration(milliseconds: 800),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: MyColors.primaryGradientColor,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: MyColors.primaryColor.withOpacity(0.3),
+                    blurRadius: 15,
+                    spreadRadius: -5,
+                    offset: const Offset(0, 8),
                   ),
-                ),
-                const SizedBox(
-                  width: 25,
-                ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  /// Grand cercle de progression
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        width: 70,
+                        height: 70,
+                        child: CircularProgressIndicator(
+                          valueColor: const AlwaysStoppedAnimation(Colors.white),
+                          backgroundColor: Colors.white.withOpacity(0.3),
+                          strokeWidth: 6,
+                          value: checkDoneTask(tasks) / valueOfTheIndicator(tasks),
+                        ),
+                      ),
+                      Text(
+                        '${((checkDoneTask(tasks) / valueOfTheIndicator(tasks)) * 100).toInt()}%',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 20),
 
-                /// Texts
-                Column(
-  mainAxisAlignment: MainAxisAlignment.center,
-  crossAxisAlignment: CrossAxisAlignment.start,
-  children: [
-    
-    Text(MyString.mainTitle, style: textTheme.displayLarge),
-    const SizedBox(
-      height: 3,
-    ),
-    Text("${checkDoneTask(tasks)} sur ${tasks.length} ${MyString.taskStrnig.toLowerCase()}${tasks.length > 1 ? 's' : ''}", // Texte mis à jour pour être précis en français
-        style: textTheme.titleMedium),
-  ],
-)
-              ],
-            ),
-          ),
-
-          /// Divider
-          const Padding(
-            padding: EdgeInsets.only(top: 10),
-            child: Divider(
-              thickness: 2,
-              indent: 100,
+                  /// Textes avec meilleure hiérarchie
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          MyString.mainTitle,
+                          style: textTheme.displayLarge?.copyWith(
+                            color: Colors.white,
+                            fontSize: 24,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          "${checkDoneTask(tasks)} sur ${tasks.length} ${MyString.taskStrnig.toLowerCase()}${tasks.length > 1 ? 's' : ''}",
+                          style: textTheme.titleMedium?.copyWith(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  /// Badge de progression
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.check_circle, color: Colors.white, size: 16),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${checkDoneTask(tasks)}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -312,7 +363,7 @@ class MySlider extends StatelessWidget {
 
           return Container(
             padding: const EdgeInsets.symmetric(vertical: 90),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                   colors: MyColors.primaryGradientColor,
                   begin: Alignment.topLeft,
@@ -324,18 +375,39 @@ class MySlider extends StatelessWidget {
                   onTap: () => navigateTo(context, 2), // 2 = Index de 'Profil'
                   child: Column(
                     children: [
-                      CircleAvatar(
-                        radius: 50,
-                        backgroundImage: AssetImage(displayImage),
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 3),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 10,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: CircleAvatar(
+                          radius: 50,
+                          backgroundImage: AssetImage(displayImage),
+                        ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 12),
                       Text(
                         displayName,
-                        style: textTheme.displayMedium?.copyWith(color: Colors.white), // Couleur blanche ajoutée pour lisibilité sur dégradé
+                        style: textTheme.displayMedium?.copyWith(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
+                      const SizedBox(height: 4),
                       Text(
                         displayProfession,
-                        style: textTheme.titleMedium?.copyWith(color: Colors.white70), // Couleur blanche subtile
+                        style: textTheme.titleMedium?.copyWith(
+                          color: Colors.white.withOpacity(0.85),
+                          fontSize: 14,
+                        ),
                       ),
                     ],
                   ),
@@ -344,30 +416,56 @@ class MySlider extends StatelessWidget {
                 Container(
                   margin: const EdgeInsets.symmetric(
                     vertical: 30,
-                    horizontal: 10,
+                    horizontal: 16,
                   ),
                   width: double.infinity,
                   height: 300,
                   child: ListView.builder(
-                      itemCount: icons.length, // L'itemCount est maintenant 5, ce qui correspond à toutes les listes
+                      itemCount: icons.length,
                       physics: const NeverScrollableScrollPhysics(),
                       itemBuilder: (ctx, i) {
-                        return InkWell(
-                          onTap: () => navigateTo(context, i), // Navigue vers l'index correspondant
-                          child: Container(
-                            margin: const EdgeInsets.all(5),
-                            child: ListTile(
-                                leading: Icon(
-                                  icons[i],
-                                  color: Colors.white,
-                                  size: 30,
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () => navigateTo(context, i),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                title: Text(
-                                  texts[i],
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                  ),
-                                )),
+                                child: ListTile(
+                                    dense: false,
+                                    leading: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Icon(
+                                        icons[i],
+                                        color: Colors.white,
+                                        size: 24,
+                                      ),
+                                    ),
+                                    title: Text(
+                                      texts[i],
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    trailing: const Icon(
+                                      Icons.arrow_forward_ios,
+                                      color: Colors.white70,
+                                      size: 16,
+                                    )),
+                              ),
+                            ),
                           ),
                         );
                       }),
@@ -477,39 +575,53 @@ class _MyAppBarState extends State<MyAppBar>
   }
 }
 
-/// Floating Action Button
+/// Floating Action Button avec animation
 class FAB extends StatelessWidget {
   const FAB({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.of(context).push(
-          CupertinoPageRoute(
-            builder: (context) => TaskView( // DOIT ÊTRE IMPORTÉ DANS CE FICHIER
-              taskControllerForSubtitle: null,
-              taskControllerForTitle: null,
-              task: null,
+    return Bounce(
+      duration: const Duration(milliseconds: 1500),
+      infinite: true,
+      child: GestureDetector(
+        onTap: () {
+          Navigator.of(context).push(
+            CupertinoPageRoute(
+              builder: (context) => TaskView(
+                taskControllerForSubtitle: null,
+                taskControllerForTitle: null,
+                task: null,
+              ),
             ),
-          ),
-        );
-      },
-      child: Material(
-        borderRadius: BorderRadius.circular(15),
-        elevation: 10,
+          );
+        },
         child: Container(
-          width: 70,
-          height: 70,
+          width: 65,
+          height: 65,
           decoration: BoxDecoration(
-            color: MyColors.primaryColor,
-            borderRadius: BorderRadius.circular(15),
+            gradient: const LinearGradient(
+              colors: MyColors.primaryGradientColor,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: MyColors.primaryColor.withOpacity(0.4),
+                blurRadius: 15,
+                spreadRadius: 2,
+                offset: const Offset(0, 5),
+              ),
+            ],
           ),
           child: const Center(
-              child: Icon(
-            Icons.add,
-            color: Colors.white,
-          )),
+            child: Icon(
+              Icons.add,
+              color: Colors.white,
+              size: 32,
+            ),
+          ),
         ),
       ),
     );

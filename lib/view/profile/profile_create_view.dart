@@ -75,6 +75,61 @@ class _ProfileCreateViewState extends State<ProfileCreateView> {
 
   @override
   Widget build(BuildContext context) {
+    final base = BaseWidget.of(context);
+    
+    // Vérifier si l'utilisateur est connecté
+    if (!base.dataStore.isUserLoggedIn()) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text("Profil", style: TextStyle(color: Colors.white)),
+          backgroundColor: MyColors.primaryColor,
+          leading: IconButton(
+            icon: const Icon(Icons.close, color: Colors.white),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(30.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.lock_outline, size: 80, color: Colors.grey.shade400),
+                const SizedBox(height: 20),
+                Text(
+                  "Connexion requise",
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  "Vous devez être connecté pour créer ou modifier votre profil",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 30),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pushNamed('/login');
+                  },
+                  icon: const Icon(Icons.login, color: Colors.white),
+                  label: const Text("Se connecter", style: TextStyle(color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: MyColors.primaryColor,
+                    minimumSize: const Size(200, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -84,53 +139,125 @@ class _ProfileCreateViewState extends State<ProfileCreateView> {
         backgroundColor: MyColors.primaryColor,
         leading: IconButton(
           icon: const Icon(Icons.close, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(), // Annuler
+          onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            // Champ Nom Complet
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: "Nom Complet",
-                prefixIcon: Icon(Icons.person),
+            const SizedBox(height: 20),
+            
+            // Avatar cliquable (placeholder)
+            GestureDetector(
+              onTap: () {
+                // Future: ajouter sélecteur d'image
+              },
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 60,
+                    backgroundColor: MyColors.primaryColor.withOpacity(0.1),
+                    child: const Icon(
+                      Icons.person,
+                      size: 60,
+                      color: MyColors.primaryColor,
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: MyColors.primaryColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: const Icon(Icons.camera_alt, size: 18, color: Colors.white),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 30),
+            
+            // Card pour les champs
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  children: [
+                    // Champ Nom Complet
+                    TextField(
+                      controller: _nameController,
+                      decoration: InputDecoration(
+                        labelText: "Nom Complet",
+                        helperText: "Entrez votre nom complet",
+                        prefixIcon: const Icon(Icons.person, color: MyColors.primaryColor),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: MyColors.primaryColor, width: 2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
 
-            // Champ Profession
-            TextField(
-              controller: _professionController,
-              decoration: const InputDecoration(
-                labelText: "Profession",
-                prefixIcon: Icon(Icons.work),
+                    // Champ Profession
+                    TextField(
+                      controller: _professionController,
+                      decoration: InputDecoration(
+                        labelText: "Profession",
+                        helperText: "Ex: Développeur, Designer, etc.",
+                        prefixIcon: const Icon(Icons.work, color: MyColors.primaryColor),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: MyColors.primaryColor, width: 2),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 40),
 
-            // Boutons Valider et Annuler
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                OutlinedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text("Annuler"),
-                ),
-                ElevatedButton(
-                  onPressed: _saveProfile,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: MyColors.primaryColor,
-                    padding: const EdgeInsets.symmetric(horizontal: 30)
-                  ),
-                  child: Text(
-                    widget.existingProfile == null ? "Créer Profil" : "Valider",
-                    style: const TextStyle(color: Colors.white)
+            // Bouton large de validation
+            SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: ElevatedButton(
+                onPressed: _saveProfile,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: MyColors.primaryColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-              ],
+                child: Text(
+                  widget.existingProfile == null ? "Créer Profil" : "Valider",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            
+            // Bouton Annuler
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("Annuler"),
             ),
           ],
         ),
