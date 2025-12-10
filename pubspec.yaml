@@ -1,0 +1,70 @@
+name: todo_work_sessions
+description: "A new Flutter project."
+
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=2.17.3 <3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Pour ouvrir les liens externes (GitHub)
+  url_launcher: ^6.2.2 
+
+  # Pour l'icône GitHub (FaIcon)
+  font_awesome_flutter: ^10.6.0
+
+  flutter_native_splash: ^2.4.0
+  cupertino_icons: ^1.0.2
+  hive: ^2.0.4
+  hive_flutter: ^1.1.0
+  uuid: ^3.0.5
+  intl: ^0.17.0
+  flutter_datetime_picker_plus: ^2.1.0 # Ou la version la plus récente
+  animate_do: ^2.1.0
+  panara_dialogs: ^0.1.2
+  lottie: ^1.4.0
+  ftoast: ^2.0.0
+  flutter_slider_drawer: ^2.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  # Mettez à jour ces trois packages
+  build_runner: ^2.4.6 # Anciennement 2.0.1
+  hive_generator: ^2.0.1 # Anciennement 1.1.0
+  
+  flutter_lints: ^3.0.0 # Mise à jour de lint pour les nouvelles versions (facultatif mais recommandé)
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/img/
+    - assets/lottie/
+    - assets/img/logo.png
+  
+
+  # fonts:
+  #   - family: Schyler
+  #     fonts:
+  #       - asset: fonts/Schyler-Regular.ttf
+  #       - asset: fonts/Schyler-Italic.ttf
+  #         style: italic
+  #   - family: Trajan Pro
+  #     fonts:
+  #       - asset: fonts/TrajanPro.ttf
+  #       - asset: fonts/TrajanPro_Bold.ttf
+  #         weight: 700
+
+flutter_native_splash:
+  # Couleur de fond de l'écran de démarrage (par exemple, blanc)
+  color: "#FFFFFF" 
+  # L'image de votre logo (assurez-vous que ce chemin est correct)
+  image: assets/img/logo.png 
+  # Optionnel: Conserver l'image sur l'écran d'accueil avant le chargement de l'appli Flutter
+  android_gravity: center
+  ios_content_mode: center
