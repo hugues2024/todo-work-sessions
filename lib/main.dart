@@ -2,55 +2,56 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'package:hive_flutter/hive_flutter.dart'; 
-// Importations de nos fichiers
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'core/services/notification_service.dart';
 import 'core/theme/app_theme.dart';
-import 'data/models/task.dart'; // Importation du modèle de Tâche
-import 'features/main_wrapper.dart'; // <== NOUVEL ÉCRAN CONTENEUR
-// Note: Assurez-vous d'avoir exécuté 'build_runner' et que 'task.g.dart' existe pour l'import ci-dessus.
+import 'data/adapters/duration_adapter.dart';
+import 'data/models/task.dart'; 
+import 'features/main_wrapper.dart';
+import 'features/settings/application/theme_provider.dart'; // <== NOUVELLE IMPORTATION
 
-
-// Fonction d'initialisation asynchrone des dépendances (Hive, etc.)
 Future<void> initDependencies() async {
-  // 1. Initialiser Hive
   await Hive.initFlutter();
-  
-  // 2. Enregistrer l'Adaptateur Task
-  if (!Hive.isAdapterRegistered(0)) {
-    Hive.registerAdapter(TaskAdapter()); 
-  }
-  
-  // 3. Ouvrir la 'Boîte' (Box) de stockage pour les tâches
-  await Hive.openBox('tasksBox');
-}
 
+  // Enregistrement des adaptateurs
+  Hive.registerAdapter(TaskAdapter());
+  Hive.registerAdapter(TaskPriorityAdapter());
+  Hive.registerAdapter(TaskStatusAdapter());
+  Hive.registerAdapter(DurationAdapter());
+  Hive.registerAdapter(ThemeModeAdapter()); // <== ENREGISTREMENT
+
+  // Ouverture des box
+  await Hive.openBox<Task>('tasksBox');
+  await Hive.openBox('settings'); // <== OUVERTURE
+
+  await NotificationService().init();
+}
 
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
-
-  // Exécution de l'initialisation avant de lancer l'application
   await initDependencies();
-
-  runApp(const TodoWorkSessionsApp());
+  runApp(const ProviderScope(child: TodoWorkSessionsApp()));
 }
 
-class TodoWorkSessionsApp extends StatelessWidget {
+// On transforme en ConsumerWidget pour lire le thème
+class TodoWorkSessionsApp extends ConsumerWidget {
   const TodoWorkSessionsApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Retrait du splash screen natif
+  Widget build(BuildContext context, WidgetRef ref) {
+    // On écoute le provider du thème
+    final themeMode = ref.watch(themeNotifierProvider);
+
     FlutterNativeSplash.remove();
 
     return MaterialApp(
       title: 'Todo Work Sessions',
       debugShowCheckedModeBanner: false,
-      
-      // Utilisation de votre thème élégant
-      theme: AppTheme.lightTheme,
-      
-      // Le point d'entrée est maintenant le MainWrapper
+      theme: AppTheme.lightTheme, // Votre thème clair existant
+      darkTheme: AppTheme.darkTheme,  // On va créer ce thème
+      themeMode: themeMode, // On applique le mode choisi
       home: const MainWrapper(), 
     );
   }

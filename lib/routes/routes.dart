@@ -1,5 +1,5 @@
-import 'package:app/pages/home_page.dart';
-import 'package:app/pages/todo_detail.dart';
+import 'package:todo_work_sessions/pages/home_page.dart';
+import 'package:todo_work_sessions/pages/todo_detail.dart';
 import 'package:flutter/material.dart';
 
 class AppRoutes {
@@ -20,4 +20,3 @@ class AppRoutes {
     }
   }
 }
-

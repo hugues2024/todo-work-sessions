@@ -1,57 +1,63 @@
 // lib/core/theme/app_theme.dart
 
 import 'package:flutter/material.dart';
-import '../constants/app_colors.dart';
 
 class AppTheme {
-  // Thème clair (Light Theme)
-  static ThemeData lightTheme = ThemeData(
-    // 1. Couleurs de base
-    brightness: Brightness.light,
-    primaryColor: AppColors.primaryBlue,
-    scaffoldBackgroundColor: AppColors.backgroundLight,
-    
-    // 2. AppBar (Barre du haut)
+  static const Color primaryBlue = Color(0xFF1A2E40); // Bleu nuit
+  static const Color accentBlue = Color(0xFF3B82F6); // Bleu vif
+  static const Color backgroundLight = Color(0xFFF5F5F5);
+  static const Color backgroundDark = Color(0xFF121212);
+  static const Color cardDark = Color(0xFF1E1E1E);
+
+  // === THÈME CLAIR "BLEU NUIT" (STABILISÉ) ===
+  static final ThemeData lightTheme = ThemeData.light().copyWith(
+    scaffoldBackgroundColor: backgroundLight,
+    primaryColor: primaryBlue,
+    colorScheme: const ColorScheme.light(
+      primary: primaryBlue,
+      secondary: primaryBlue, // Le bleu nuit est la couleur d'action
+    ),
     appBarTheme: const AppBarTheme(
-      backgroundColor: AppColors.backgroundLight,
-      foregroundColor: AppColors.textPrimary,
-      elevation: 0, // Design plat
+      backgroundColor: primaryBlue,
+      iconTheme: IconThemeData(color: Colors.white),
+      titleTextStyle: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
     ),
-    
-    // 3. Boutons (Accent Green pour l'action)
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        foregroundColor: Colors.white,
-        backgroundColor: AppColors.accentGreen,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      ),
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      backgroundColor: primaryBlue,
+      foregroundColor: Colors.white,
     ),
-    
-    // 4. Texte (Utilisation de la couleur primaire)
-    textTheme: const TextTheme(
-      titleLarge: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
-      bodyMedium: TextStyle(color: AppColors.textPrimary),
-      // Si vous utilisez une police spécifique comme Poppins, ajoutez-la ici
+    listTileTheme: const ListTileThemeData(
+      iconColor: primaryBlue,
+      subtitleTextStyle: TextStyle(color: Colors.black54),
     ),
-    
-    // 5. Entrées de Texte (Input Fields)
-    inputDecorationTheme: InputDecorationTheme(
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppColors.textSecondary),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2),
-      ),
-      fillColor: Colors.white,
-      filled: true,
-      hintStyle: const TextStyle(color: AppColors.textSecondary),
+    progressIndicatorTheme: const ProgressIndicatorThemeData(
+      color: primaryBlue,
     ),
   );
-  
-  // Un thème sombre pourrait être ajouté ici si nécessaire
+
+  // === THÈME SOMBRE "BLEU VIF" (STABILISÉ) ===
+  static final ThemeData darkTheme = ThemeData.dark().copyWith(
+    scaffoldBackgroundColor: backgroundDark,
+    primaryColor: accentBlue,
+    colorScheme: const ColorScheme.dark(
+      primary: accentBlue,
+      secondary: accentBlue,
+      surface: cardDark,
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: cardDark, 
+      elevation: 0,
+    ),
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      backgroundColor: accentBlue,
+      foregroundColor: Colors.white,
+    ),
+    listTileTheme: ListTileThemeData(
+      iconColor: accentBlue,
+      subtitleTextStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+    ),
+    progressIndicatorTheme: const ProgressIndicatorThemeData(
+      color: accentBlue,
+    ),
+  );
 }
