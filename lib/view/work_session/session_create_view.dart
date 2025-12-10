@@ -1,3 +1,4 @@
+
 // lib/view/work_session/session_create_view.dart
 
 // ignore_for_file: prefer_typing_uninitialized_variables, use_build_context_synchronously
@@ -8,7 +9,7 @@ import 'package:flutter/material.dart';
 import '../../main.dart';
 import '../../models/work_session.dart';
 import '../../utils/colors.dart';
-import '../../utils/constanst.dart'; // Pour emptyFieldsWarning, etc.
+import '../../utils/constanst.dart';
 import '../../utils/strings.dart'; 
 
 // ignore: must_be_immutable
@@ -32,11 +33,8 @@ class _SessionCreateViewState extends State<SessionCreateView> {
 
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  
-  // Contrôleurs pour les durées, initialisés à 25/5 par défaut si nouvelle session
   final TextEditingController _workDurationController = TextEditingController(text: '25');
   final TextEditingController _breakDurationController = TextEditingController(text: '5');
-
 
   @override
   void initState() {
@@ -55,16 +53,14 @@ class _SessionCreateViewState extends State<SessionCreateView> {
   }
 
   /// Si une Session existe déjà (mode mise à jour)
-  bool isSessionAlreadyExistBool() {
-    return widget.session == null;
-  }
+  bool get isNewSession => widget.session == null;
 
   /// Ajouter ou Mettre à jour la session
   dynamic saveOrUpdateSession() {
     final dataStore = BaseWidget.of(context).dataStore;
 
-    // Mise à jour
     if (widget.session != null) {
+      // Mise à jour
       widget.session!.title = title;
       widget.session!.description = description;
       widget.session!.workDurationMinutes = int.tryParse(_workDurationController.text) ?? 25;
@@ -72,9 +68,8 @@ class _SessionCreateViewState extends State<SessionCreateView> {
       
       widget.session?.save();
       Navigator.of(context).pop();
-    } 
-    // Création
-    else {
+    } else {
+      // Création
       if (title.isNotEmpty && description.isNotEmpty) {
         var session = WorkSession.create(
           title: title,
@@ -85,7 +80,7 @@ class _SessionCreateViewState extends State<SessionCreateView> {
         dataStore.addSession(session: session);
         Navigator.of(context).pop();
       } else {
-        emptyFieldsWarning(context); // Doit être implémenté dans utils/constanst.dart
+        emptyFieldsWarning(context);
       }
     }
   }
@@ -95,6 +90,24 @@ class _SessionCreateViewState extends State<SessionCreateView> {
     return widget.session?.delete();
   }
 
+  /// InputDecoration moderne
+  InputDecoration modernInput(String hint, {Widget? prefixIcon}) {
+    return InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: Colors.grey.shade100,
+      contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+      prefixIcon: prefixIcon,
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: MyColors.primaryColor, width: 1.8),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -109,7 +122,7 @@ class _SessionCreateViewState extends State<SessionCreateView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Texte d'en-tête (Nouvelle session / Modifier session)
+              // Texte d'en-tête
               _buildTopText(textTheme),
               
               const SizedBox(height: 30),
@@ -133,13 +146,10 @@ class _SessionCreateViewState extends State<SessionCreateView> {
     );
   }
 
-  
-  // ... Méthodes de construction des widgets ...
-  
   Widget _buildTopText(TextTheme textTheme) {
     return Center(
       child: Text(
-        isSessionAlreadyExistBool() ? MyString.addNewSession : MyString.updateCurrentSession,
+        isNewSession ? MyString.addNewSession : MyString.updateCurrentSession,
         style: textTheme.titleLarge,
       ),
     );
@@ -150,19 +160,21 @@ class _SessionCreateViewState extends State<SessionCreateView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(MyString.titleOfTitleTextField, style: Theme.of(context).textTheme.headlineMedium),
+        const SizedBox(height: 10),
         TextField(
           controller: _titleController,
           onChanged: (value) => title = value,
-          decoration: const InputDecoration(hintText: "Nom de la session (ex: Deep Work)"),
+          decoration: modernInput("Ex: Deep Work Session"),
         ),
         const SizedBox(height: 20),
 
         Text(MyString.description, style: Theme.of(context).textTheme.headlineMedium),
+        const SizedBox(height: 10),
         TextField(
           controller: _descriptionController,
           maxLines: 4,
           onChanged: (value) => description = value,
-          decoration: const InputDecoration(hintText: "Description et objectifs"),
+          decoration: modernInput("Description et objectifs"),
         ),
       ],
     );
@@ -173,85 +185,63 @@ class _SessionCreateViewState extends State<SessionCreateView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text("Durée de Travail (min)", style: textTheme.headlineMedium),
+        const SizedBox(height: 10),
         TextField(
           controller: _workDurationController,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            hintText: "Ex: 25 (minutes)",
-            prefixIcon: Icon(Icons.work)
-          ),
+          decoration: modernInput("Ex: 25 minutes", prefixIcon: const Icon(Icons.timer)),
           onChanged: (value) => workDurationMinutes = int.tryParse(value) ?? 25,
         ),
         const SizedBox(height: 20),
 
         Text("Durée de Pause (min)", style: textTheme.headlineMedium),
+        const SizedBox(height: 10),
         TextField(
           controller: _breakDurationController,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            hintText: "Ex: 5 (minutes)",
-            prefixIcon: Icon(Icons.coffee)
-          ),
+          decoration: modernInput("Ex: 5 minutes", prefixIcon: const Icon(Icons.coffee)),
           onChanged: (value) => breakDurationMinutes = int.tryParse(value) ?? 5,
         ),
       ],
     );
   }
 
-
   Padding _buildBottomButtons(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Row(
-        mainAxisAlignment: isSessionAlreadyExistBool()
+        mainAxisAlignment: isNewSession
             ? MainAxisAlignment.center
             : MainAxisAlignment.spaceEvenly,
         children: [
-          isSessionAlreadyExistBool()
-              ? Container()
-
-              /// Delete Session Button
-              : Container(
-                  width: 150,
-                  height: 55,
-                  decoration: BoxDecoration(
-                      border:
-                          Border.all(color: MyColors.primaryColor, width: 2),
-                      borderRadius: BorderRadius.circular(15)),
-                  child: MaterialButton(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    onPressed: () {
-                      deleteSession();
-                      Navigator.pop(context);
-                    },
-                    child: Row(
-                      children: const [
-                        Icon(Icons.close, color: MyColors.primaryColor),
-                        SizedBox(width: 5),
-                        Text(MyString.deleteTask, style: TextStyle(color: MyColors.primaryColor)),
-                      ],
-                    ),
-                  ),
-                ),
+          if (!isNewSession)
+            OutlinedButton.icon(
+              icon: const Icon(Icons.delete_outline, color: MyColors.primaryColor),
+              label: const Text(MyString.deleteTask, style: TextStyle(color: MyColors.primaryColor)),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(150, 55),
+                side: const BorderSide(color: MyColors.primaryColor, width: 2),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              onPressed: () {
+                deleteSession();
+                Navigator.pop(context);
+              },
+            ),
 
           /// Add or Update Session Button
-          MaterialButton(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15),
-            ),
-            minWidth: 150,
-            height: 55,
-            onPressed: saveOrUpdateSession,
-            color: MyColors.primaryColor,
-            child: Text(
-              isSessionAlreadyExistBool()
-                  ? MyString.addSessionString
-                  : MyString.updateSessionString,
-              style: const TextStyle(
-                color: Colors.white,
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: MyColors.primaryColor,
+              minimumSize: const Size(150, 55),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
               ),
+            ),
+            onPressed: saveOrUpdateSession,
+            child: Text(
+              isNewSession ? MyString.addSessionString : MyString.updateSessionString,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
             ),
           ),
         ],
@@ -260,41 +250,23 @@ class _SessionCreateViewState extends State<SessionCreateView> {
   }
 }
 
-/// AppBar
+/// AppBar moderne
 class SessionCreateAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const SessionCreateAppBar({
-    Key? key,
-  }) : super(key: key);
+  const SessionCreateAppBar({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 150,
-      child: Padding(
-        padding: const EdgeInsets.only(top: 20),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(left: 20),
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  size: 50,
-                ),
-              ),
-            ),
-          ],
-        ),
+    return AppBar(
+      elevation: 0,
+      backgroundColor: Colors.white,
+      foregroundColor: Colors.black87,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 22),
+        onPressed: () => Navigator.pop(context),
       ),
     );
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(100);
+  Size get preferredSize => const Size.fromHeight(56);
 }

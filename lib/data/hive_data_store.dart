@@ -5,7 +5,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hive/hive.dart';
 import '../models/task.dart';
 import '../models/user_profile.dart'; 
-import '../models/work_session.dart'; 
+import '../models/work_session.dart';
+import '../models/user_auth.dart';
 
 ///
 class HiveDataStore {
@@ -16,6 +17,7 @@ class HiveDataStore {
   final Box<UserProfile> userBox = Hive.box<UserProfile>("userProfileBox");
   final Box<WorkSession> sessionBox = Hive.box<WorkSession>("workSessionsBox"); 
   final Box<Task> box = Hive.box<Task>(boxName);
+  final Box<UserAuth> authBox = Hive.box<UserAuth>("userAuthBox");
 
   // =========================================================================
   // 🎯 GESTION DES TÂCHES (CRUD)
@@ -91,5 +93,37 @@ class HiveDataStore {
   // Méthode pour trouver une session par ID (optionnel, mais utile)
   WorkSession? findSession({required String id}) {
     return sessionBox.get(id);
+  }
+
+  // =========================================================================
+  // 🔐 GESTION DE L'AUTHENTIFICATION
+  // =========================================================================
+
+  // Vérifier si un utilisateur est connecté
+  bool isUserLoggedIn() {
+    return authBox.values.any((user) => user.isLoggedIn);
+  }
+
+  // Obtenir l'utilisateur connecté (ou "Utilisateur" par défaut)
+  UserAuth getLoggedInUser() {
+    final loggedIn = authBox.values.where((user) => user.isLoggedIn);
+    if (loggedIn.isNotEmpty) {
+      return loggedIn.first;
+    }
+    // Utilisateur par défaut
+    return UserAuth(email: 'Utilisateur', password: '', isLoggedIn: false);
+  }
+
+  // Déconnexion
+  Future<void> logout() async {
+    final users = authBox.values.where((user) => user.isLoggedIn);
+    for (var user in users) {
+      user.isLoggedIn = false;
+      await user.save();
+    }
+  }
+
+  ValueListenable<Box<UserAuth>> listenToAuth() {
+    return authBox.listenable();
   }
 }

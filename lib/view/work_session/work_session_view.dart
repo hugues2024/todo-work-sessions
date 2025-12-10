@@ -91,53 +91,31 @@ class WorkSessionView extends StatelessWidget {
   }
 }
 
-
-/// AppBar de la Session de Travail (inchangée)
+/// AppBar moderne
 class WorkSessionAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const WorkSessionAppBar({
-    Key? key,
-  }) : super(key: key);
+  const WorkSessionAppBar({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 150,
-      child: Padding(
-        padding: const EdgeInsets.only(top: 20),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(left: 20),
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  size: 50,
-                ),
-              ),
-            ),
-            const Expanded(
-              child: Center(
-                child: Text(
-                  "Session de travail",
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold
-                  ),
-                ),
-              ),
-            )
-          ],
+    return AppBar(
+      elevation: 0,
+      backgroundColor: Colors.white,
+      foregroundColor: Colors.black87,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 22),
+        onPressed: () => Navigator.pop(context),
+      ),
+      title: const Text(
+        "Sessions de travail",
+        style: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
         ),
       ),
+      centerTitle: true,
     );
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(100);
+  Size get preferredSize => const Size.fromHeight(56);
 }
