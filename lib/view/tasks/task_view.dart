@@ -84,11 +84,18 @@ class _TaskViewState extends State<TaskView> {
       try {
         widget.task?.title = title ?? widget.taskControllerForTitle?.text;
         widget.task?.subtitle = subtitle ?? widget.taskControllerForSubtitle?.text;
-        widget.task?.createdAtTime = time!;
-        widget.task?.createdAtDate = date!;
-        widget.task?.steps = steps;
+        
+        // Si des étapes existent, on utilise la date de l'étape la plus tardive
+        if (steps.isNotEmpty) {
+          widget.task?.steps = steps;
+          widget.task?.updateTaskDateTime();
+        } else {
+          // Sinon on utilise les dates manuellement définies
+          widget.task?.createdAtTime = time!;
+          widget.task?.createdAtDate = date!;
+        }
+        
         widget.task?.updateCompletionStatus();
-
         widget.task?.save();
         Navigator.of(context).pop();
       } catch (error) {
@@ -104,6 +111,7 @@ class _TaskViewState extends State<TaskView> {
           subtitle: subtitle,
           steps: steps,
         );
+        // La date/heure est automatiquement mise à jour dans Task.create si des étapes existent
         BaseWidget.of(context).dataStore.addTask(task: task);
         Navigator.of(context).pop();
       } else {
@@ -173,40 +181,43 @@ class _TaskViewState extends State<TaskView> {
   /// All Bottom Buttons
   Padding _buildBottomButtons(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
       child: Row(
-        mainAxisAlignment: isNewTask
-            ? MainAxisAlignment.center
-            : MainAxisAlignment.spaceEvenly,
         children: [
           if (!isNewTask)
-            OutlinedButton.icon(
-              icon: const Icon(Icons.delete_outline, color: MyColors.primaryColor),
-              label: const Text(MyString.deleteTask, style: TextStyle(color: MyColors.primaryColor)),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(150, 55),
-                side: const BorderSide(color: MyColors.primaryColor, width: 2),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            Expanded(
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.delete_outline, color: MyColors.primaryColor),
+                label: const Text(MyString.deleteTask, style: TextStyle(color: MyColors.primaryColor)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  side: const BorderSide(color: MyColors.primaryColor, width: 2),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                onPressed: () {
+                  deleteTask();
+                  Navigator.pop(context);
+                },
               ),
-              onPressed: () {
-                deleteTask();
-                Navigator.pop(context);
-              },
             ),
 
+          if (!isNewTask) const SizedBox(width: 12),
+
           /// Add or Update Task Button
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: MyColors.primaryColor,
-              minimumSize: const Size(150, 55),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+          Expanded(
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: MyColors.primaryColor,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
-            ),
-            onPressed: saveOrUpdateTask,
-            child: Text(
-              isNewTask ? MyString.addTaskString : MyString.updateTaskString,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
+              onPressed: saveOrUpdateTask,
+              child: Text(
+                isNewTask ? MyString.addTaskString : MyString.updateTaskString,
+                style: const TextStyle(color: Colors.white, fontSize: 16),
+              ),
             ),
           ),
         ],
@@ -434,35 +445,70 @@ class _TaskViewState extends State<TaskView> {
               itemCount: steps.length,
               itemBuilder: (context, index) {
                 final step = steps[index];
-                return ListTile(
-                  leading: Checkbox(
-                    value: step.isCompleted,
-                    onChanged: (value) {
-                      setState(() {
-                        step.isCompleted = value ?? false;
-                      });
-                    },
-                    activeColor: MyColors.primaryColor,
-                  ),
-                  title: Text(
-                    step.title,
-                    style: TextStyle(
-                      decoration: step.isCompleted ? TextDecoration.lineThrough : null,
+                return InkWell(
+                  onTap: () => _editStepDateTime(step, index),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: index > 0 ? Border(top: BorderSide(color: Colors.grey.shade200)) : null,
                     ),
-                  ),
-                  subtitle: step.scheduledStartDate != null
-                      ? Text(
-                          "Début: ${DateFormat.yMd().format(step.scheduledStartDate!)} ${step.scheduledStartTime != null ? DateFormat('HH:mm').format(step.scheduledStartTime!) : ''}",
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                        )
-                      : null,
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.red),
-                    onPressed: () {
-                      setState(() {
-                        steps.removeAt(index);
-                      });
-                    },
+                    child: ListTile(
+                      leading: Checkbox(
+                        value: step.isCompleted,
+                        onChanged: (value) {
+                          setState(() {
+                            step.isCompleted = value ?? false;
+                            if (step.isCompleted) {
+                              step.completedAt = DateTime.now();
+                            } else {
+                              step.completedAt = null;
+                            }
+                            
+                            // Vérifier si toutes les étapes sont complétées
+                            if (widget.task != null) {
+                              widget.task!.updateCompletionStatus();
+                            }
+                          });
+                        },
+                        activeColor: MyColors.primaryColor,
+                      ),
+                      title: Text(
+                        step.title,
+                        style: TextStyle(
+                          decoration: step.isCompleted ? TextDecoration.lineThrough : null,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: step.scheduledStartDate != null
+                          ? Text(
+                              "Échéance: ${DateFormat('dd/MM/yyyy').format(step.scheduledStartDate!)} ${step.scheduledStartTime != null ? DateFormat('HH:mm').format(step.scheduledStartTime!) : ''}",
+                              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                            )
+                          : Text(
+                              "Appuyez pour définir une échéance",
+                              style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontStyle: FontStyle.italic),
+                            ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              step.scheduledStartDate != null ? Icons.edit_calendar : Icons.calendar_today,
+                              color: MyColors.primaryColor,
+                              size: 20,
+                            ),
+                            onPressed: () => _editStepDateTime(step, index),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                            onPressed: () {
+                              setState(() {
+                                steps.removeAt(index);
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 );
               },
@@ -507,16 +553,142 @@ class _TaskViewState extends State<TaskView> {
     );
   }
 
-  /// new / update Task Text
-  SizedBox _buildTopText(TextTheme textTheme) {
-    return SizedBox(
-      width: double.infinity,
-      height: 80,
-      child: Center(
-        child: Text(
-          isNewTask ? MyString.addNewTask : MyString.updateCurrentTask,
-          style: textTheme.titleLarge,
+  /// Éditer la date et l'heure d'une étape
+  void _editStepDateTime(TaskStep step, int index) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Planifier l'étape"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.calendar_today, color: MyColors.primaryColor),
+              title: const Text("Date d'échéance"),
+              subtitle: Text(
+                step.scheduledStartDate != null
+                    ? DateFormat('dd/MM/yyyy').format(step.scheduledStartDate!)
+                    : "Non définie",
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                DatePicker.showDatePicker(
+                  context,
+                  showTitleActions: true,
+                  minTime: DateTime.now(),
+                  maxTime: DateTime(2030, 12, 31),
+                  currentTime: step.scheduledStartDate ?? DateTime.now(),
+                  onConfirm: (selectedDate) {
+                    setState(() {
+                      step.scheduledStartDate = selectedDate;
+                    });
+                  },
+                );
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.access_time, color: MyColors.primaryColor),
+              title: const Text("Heure d'échéance"),
+              subtitle: Text(
+                step.scheduledStartTime != null
+                    ? DateFormat('HH:mm').format(step.scheduledStartTime!)
+                    : "Non définie",
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                DatePicker.showTimePicker(
+                  context,
+                  showTitleActions: true,
+                  showSecondsColumn: false,
+                  currentTime: step.scheduledStartTime ?? DateTime.now(),
+                  onConfirm: (selectedTime) {
+                    setState(() {
+                      step.scheduledStartTime = selectedTime;
+                    });
+                  },
+                );
+              },
+            ),
+          ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Fermer"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// new / update Task Text
+  Widget _buildTopText(TextTheme textTheme) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+      child: Column(
+        children: [
+          Text(
+            isNewTask ? MyString.addNewTask : MyString.updateCurrentTask,
+            style: textTheme.titleLarge,
+          ),
+          
+          // Barre de progression si c'est une tâche existante avec des étapes
+          if (!isNewTask && widget.task != null && widget.task!.steps.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: MyColors.primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Progression",
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        "${widget.task!.completionPercentage.toInt()}%",
+                        style: textTheme.titleMedium?.copyWith(
+                          color: MyColors.primaryColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: LinearProgressIndicator(
+                      value: widget.task!.completionPercentage / 100,
+                      minHeight: 8,
+                      backgroundColor: Colors.grey.shade300,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        widget.task!.isCompleted ? Colors.green : MyColors.primaryColor,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "${widget.task!.steps.where((s) => s.isCompleted).length}/${widget.task!.steps.length} étapes complétées",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

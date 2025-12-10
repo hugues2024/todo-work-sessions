@@ -211,10 +211,7 @@ class _HomeViewState extends State<HomeView> {
           ),
 
           /// Bottom ListView : Tasks
-          SizedBox(
-            width: double.infinity,
-            // Hauteur ajustée pour être moins rigide sur différents écrans
-            height: MediaQuery.of(context).size.height * 0.65, 
+          Expanded(
             child: tasks.isNotEmpty
                 ? ListView.builder(
                     physics: const BouncingScrollPhysics(),
