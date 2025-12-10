@@ -20,7 +20,7 @@ import '../../view/home/widgets/task_widget.dart';
 import '../../view/tasks/task_view.dart';
 import '../../view/profile/profile_view.dart'; 
 import '../../view/settings/settings_view.dart'; 
-import '../../view/details/details_view.dart'; 
+import '../details/details_view.dart'; 
 import '../../view/work_session/work_session_view.dart'; 
 
 
@@ -439,7 +439,7 @@ class MySlider extends StatelessWidget {
                                     leading: Container(
                                       padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.2),
+                                        color: Colors.white.withOpacity(0.25),
                                         borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: Icon(
@@ -452,14 +452,14 @@ class MySlider extends StatelessWidget {
                                       texts[i],
                                       style: const TextStyle(
                                         color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500,
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                     trailing: const Icon(
                                       Icons.arrow_forward_ios,
-                                      color: Colors.white70,
-                                      size: 16,
+                                      color: Colors.white,
+                                      size: 18,
                                     )),
                               ),
                             ),

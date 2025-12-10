@@ -1,3 +1,4 @@
+
 // lib/view/settings/settings_view.dart
 
 // ignore_for_file: use_build_context_synchronously
@@ -30,9 +31,40 @@ class SettingsView extends StatelessWidget {
     dataStore.saveUserProfile(profile); 
   }
 
+  // Fonction pour effacer toutes les données
+  void _clearAllData(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Confirmation"),
+        content: const Text("Êtes-vous sûr de vouloir effacer toutes les tâches et sessions ? Cette action est irréversible."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text("Annuler"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              final base = BaseWidget.of(context);
+              base.dataStore.box.clear();
+              base.dataStore.sessionBox.clear();
+              Navigator.of(ctx).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Toutes les données ont été effacées")),
+              );
+            },
+            child: const Text("Effacer", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final base = BaseWidget.of(context);
+    final bool isLoggedIn = base.dataStore.isUserLoggedIn();
     
     return ValueListenableBuilder<Box<UserProfile>>(
       valueListenable: base.dataStore.listenToUserProfile(),
@@ -66,7 +98,6 @@ class SettingsView extends StatelessWidget {
                   _updateProfileSettings(context, (p) {
                     p.notificationsEnabled = newValue;
                   });
-                  // NOTE: L'implémentation réelle des notifications dépend d'un package (ex: flutter_local_notifications)
                 },
               ),
               const Divider(),
@@ -93,43 +124,40 @@ class SettingsView extends StatelessWidget {
                         p.themeMode = newMode;
                       });
                       
-                      // ⚠️ Pour que le thème s'applique, vous devrez mettre à jour 
-                      // le Material App dans lib/main.dart pour écouter la valeur
-                      // 'profile.themeMode' et utiliser ThemeMode.light ou ThemeMode.dark.
+                      // Redémarrer l'application pour appliquer le thème
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Thème modifié (redémarrez l'app pour l'appliquer)")),
+                      );
                     }
                   },
                 ),
               ),
               const Divider(),
 
-              // 3. (Optionnel) Vider les données
+              // 3. Vider les données
               ListTile(
                 leading: const Icon(Icons.delete_sweep, color: Colors.red),
                 title: const Text("Effacer toutes les tâches et sessions"),
                 subtitle: const Text("Attention : cette action est irréversible."),
-                onTap: () {
-                  // Vous devez ajouter la logique de confirmation ici, puis :
-                  // base.dataStore.box.clear();
-                  // base.dataStore.sessionBox.clear();
-                  // Navigator.of(context).pop();
-                },
+                onTap: () => _clearAllData(context),
               ),
               const Divider(),
 
-              // 4. Déconnexion
-              ListTile(
-                leading: const Icon(Icons.logout, color: Colors.red),
-                title: const Text("Se déconnecter"),
-                subtitle: const Text("Vous devrez vous reconnecter."),
-                onTap: () async {
-                  await base.dataStore.logout();
-                  // Retour à l'écran de connexion
-                  Navigator.of(context).pushNamedAndRemoveUntil(
-                    '/',
-                    (route) => false,
-                  );
-                },
-              )
+              // 4. Déconnexion (uniquement si connecté)
+              if (isLoggedIn)
+                ListTile(
+                  leading: const Icon(Icons.logout, color: Colors.red),
+                  title: const Text("Se déconnecter"),
+                  subtitle: const Text("Vous devrez vous reconnecter."),
+                  onTap: () async {
+                    await base.dataStore.logout();
+                    // Retour à l'écran de connexion
+                    Navigator.of(context).pushNamedAndRemoveUntil(
+                      '/',
+                      (route) => false,
+                    );
+                  },
+                ),
             ],
           ),
         );
