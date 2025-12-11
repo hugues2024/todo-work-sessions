@@ -13,12 +13,12 @@ class UserProfile extends HiveObject {
   String? profession;
 
   @HiveField(2)
-  String? imagePath; 
+  String? imagePath; // Chemin local de la photo de profil
 
-  @HiveField(3) // 👈 NOUVEAU : Préférence de thème (0: Clair, 1: Sombre)
-  int themeMode;
+  @HiveField(3) 
+  int themeMode; // 0: Système, 1: Clair, 2: Sombre (J'ai conservé int pour la flexibilité)
 
-  @HiveField(4) // 👈 NOUVEAU : État des notifications (true/false)
+  @HiveField(4) 
   bool notificationsEnabled;
 
   UserProfile({
@@ -26,18 +26,38 @@ class UserProfile extends HiveObject {
     this.profession, 
     this.imagePath,
     // Initialisation par défaut
-    this.themeMode = 0, 
+    this.themeMode = 0, // Défaut : Système ou Clair
     this.notificationsEnabled = true,
   });
 
-  // Méthode pour obtenir un profil par défaut/initial
+  // ==========================================================
+  // 🛠️ MÉTHODE COPYWITH (AJOUT POUR LA MISE À JOUR IMMUABLE)
+  // ==========================================================
+  UserProfile copyWith({
+    String? name,
+    String? profession,
+    String? imagePath,
+    int? themeMode,
+    bool? notificationsEnabled,
+  }) {
+    return UserProfile(
+      // Si un nouveau paramètre est fourni, on l'utilise, sinon on garde l'ancien (this.champ)
+      name: name ?? this.name,
+      profession: profession ?? this.profession,
+      imagePath: imagePath ?? this.imagePath,
+      themeMode: themeMode ?? this.themeMode,
+      notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
+    );
+  }
+
+  // Méthode pour obtenir un profil par défaut/initial (utile lors de l'inscription)
   static UserProfile defaultProfile() {
     return UserProfile(
       name: null,
       profession: null,
-      imagePath: 'assets/img/main.png',
-      themeMode: 0, // Clair par défaut
-      notificationsEnabled: true, // Activées par défaut
+      imagePath: null, // L'image par défaut est gérée dans la vue ProfileView
+      themeMode: 0, 
+      notificationsEnabled: true, 
     );
   }
 }

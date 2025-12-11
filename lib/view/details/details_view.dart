@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:animate_do/animate_do.dart';
 
 ///
 import '../../utils/colors.dart';
@@ -24,77 +25,173 @@ class DetailsView extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: MyColors.primaryColor,
         elevation: 0,
-        title: const Text("Détails du Projet", style: TextStyle(color: Colors.white)),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        title: const Text("Détails de l'application", style: TextStyle(color: Colors.white)),
+        // ❌ SUPPRIMÉ : Le bouton de retour a été retiré,
+        // car la navigation est gérée par la BottomNavigationBar.
+        // leading: IconButton(
+        //   icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+        //   onPressed: () => Navigator.of(context).pop(),
+        // ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // --- Image d'en-tête ---
+            FadeIn(
+              duration: const Duration(milliseconds: 600),
+              child: Center(
+                child: Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: MyColors.primaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Icon(
+                    Icons.work_outline,
+                    size: 60,
+                    color: MyColors.primaryColor,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            
             // --- Section 1: À propos de l'application ---
-            Text(
-              "Todo Work Sessions",
-              style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 30),
+            FadeInUp(
+              duration: const Duration(milliseconds: 600),
+              child: Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Todo Work Sessions",
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: MyColors.primaryColor,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        "Une application de gestion de tâches et de productivité basée sur le principe de la session de travail concentrée. Elle utilise Hive pour un stockage local rapide et fiable.",
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
-            const SizedBox(height: 10),
-            const Text(
-              "Une application de gestion de tâches et de productivité basée sur le principe de la session de travail concentrée (similaire à Pomodoro). Elle utilise Hive pour un stockage local rapide et fiable.",
-              style: TextStyle(fontSize: 16),
-            ),
-            const Divider(height: 40),
+            const SizedBox(height: 20),
 
             // --- Section 2: Objectifs et Fonctionnalités ---
-            _buildSectionTitle(context, "Objectifs Clés & Fonctionnalités"),
-            _buildFeatureList([
-              "Gestion complète des tâches (CRUD) pour organiser le travail quotidien.",
-              "Planification et suivi des sessions de travail (Durée de travail/pause).",
-              "Personnalisation du profil utilisateur (Nom, Profession).",
-              "Réglages des préférences (Thème Clair/Sombre, Notifications).",
-              "Utilisation d'un système de base de données NoSQL local (Hive).",
-            ]),
-            const Divider(height: 40),
+            FadeInUp(
+              duration: const Duration(milliseconds: 700),
+              delay: const Duration(milliseconds: 100),
+              child: Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionTitle(context, "Objectifs Clés & Fonctionnalités"),
+                      const SizedBox(height: 10),
+                      _buildFeatureList([
+                        "Gestion complète des tâches (CRUD) pour organiser le travail quotidien.",
+                        "Planification et suivi des sessions de travail (Durée de travail/pause).",
+                        "Personnalisation du profil utilisateur (Nom, Profession).",
+                        "Réglages des préférences (Thème Clair/Sombre, Notifications).",
+                        "Utilisation d'un système de base de données NoSQL local (Hive).",
+                      ]),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
 
             // --- Section 3: Lien GitHub du Projet ---
-            _buildSectionTitle(context, "Code Source du Projet"),
-            ListTile(
-              leading: const FaIcon(FontAwesomeIcons.github, size: 30),
-              title: const Text("hugues2024/todo-work-sessions"),
-              trailing: const Icon(Icons.open_in_new),
-              onTap: () => _launchUrl('https://github.com/hugues2024/todo-work-sessions'),
+            FadeInUp(
+              duration: const Duration(milliseconds: 700),
+              delay: const Duration(milliseconds: 200),
+              child: Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: _buildSectionTitle(context, "Code Source du Projet"),
+                    ),
+                    ListTile(
+                      leading: const FaIcon(FontAwesomeIcons.github, size: 30),
+                      title: const Text("hugues2024/todo-work-sessions"),
+                      trailing: const Icon(Icons.open_in_new),
+                      onTap: () => _launchUrl('https://github.com/hugues2024/todo-work-sessions'),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            const Divider(height: 40),
+            const SizedBox(height: 20),
 
             // --- Section 4: Membres de l'équipe (Statique) ---
-            _buildSectionTitle(context, "Équipe de Développement"),
-            _buildTeamMember(context, 
-              name: "HOUNKPATIN Hugues", 
-              role: "Développeur Mobile Principal", 
-              githubUrl: "https://github.com/hugues2024"
-            ),
-            _buildTeamMember(context, 
-              name: "BELLO Mohamed", 
-              role: "Developpeur Mobile", 
-              githubUrl: "https://github.com/mohamedbello18"
-            ),
-            _buildTeamMember(context, 
-              name: "PATINDE Nolan", 
-              role: "Developpeur Mobile", 
-              githubUrl: "https://github.com/Mehdi-ahd"
-            ),
-            _buildTeamMember(context, 
-              name: "SOTON Prince", 
-              role: "Developpeur Mobile", 
-              githubUrl: "https://github.com/PrinceSoton"
+            FadeInUp(
+              duration: const Duration(milliseconds: 700),
+              delay: const Duration(milliseconds: 300),
+              child: Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionTitle(context, "Équipe de Développement"),
+                      const SizedBox(height: 10),
+                      _buildTeamMember(context, 
+                        name: "HOUNKPATIN Hugues", 
+                        role: "Développeur Mobile Principal (Scrum Master)", 
+                        githubUrl: "https://github.com/hugues2024"
+                      ),
+                      _buildTeamMember(context, 
+                        name: "BELLO Mohamed", 
+                        role: "Developpeur Mobile (Product Owner)", 
+                        githubUrl: "https://github.com/mohamedbello18"
+                      ),
+                      _buildTeamMember(context, 
+                        name: "PATINDE Nolan", 
+                        role: "Developpeur Mobile", 
+                        githubUrl: "https://github.com/Mehdi-ahd"
+                      ),
+                      _buildTeamMember(context, 
+                        name: "SOTON Prince", 
+                        role: "Developpeur Mobile", 
+                        githubUrl: "https://github.com/PrinceSoton"
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
             const SizedBox(height: 30),
-            Center(
-              child: Text(
-                "Application développée avec Flutter.",
-                style: Theme.of(context).textTheme.titleSmall,
+            FadeIn(
+              duration: const Duration(milliseconds: 800),
+              delay: const Duration(milliseconds: 400),
+              child: Center(
+                child: Text(
+                  "Application développée avec Flutter 🖥️",
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: Colors.grey.shade600,
+                  ),
+                ),
               ),
             ),
           ],

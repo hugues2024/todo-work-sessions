@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/adapters.dart';
+import 'package:hive/hive.dart';
 
 ///
 import '../../main.dart';
@@ -14,43 +15,74 @@ class SettingsView extends StatelessWidget {
   const SettingsView({super.key});
 
   // Fonction pour changer les préférences du profil (via la boîte Hive)
-  void _updateProfileSettings(BuildContext context, Function(UserProfile) updateAction) {
+  void _updateProfileSettings(BuildContext context, Function(UserProfile) updateAction) async {
     final dataStore = BaseWidget.of(context).dataStore;
-    UserProfile? profile = dataStore.getUserProfile();
     
-    // Si le profil n'existe pas, on le crée avec les valeurs par défaut
+    // 👈 CORRECTION 1: Utilisation de la nouvelle méthode
+    UserProfile? profile = dataStore.getLoggedInUserProfile();
+    
+    // Ne pas continuer si l'utilisateur n'a pas de profil
     if (profile == null) {
-      profile = UserProfile.defaultProfile();
+      return; 
     }
     
     // Exécute l'action de mise à jour spécifique (ex: changer le thème)
     updateAction(profile);
     
     // Sauvegarde le profil
-    dataStore.saveUserProfile(profile); 
+    await dataStore.saveUserProfile(profile); 
+  }
+
+  // Fonction pour effacer toutes les données
+  void _clearAllData(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Confirmation"),
+        content: const Text("Êtes-vous sûr de vouloir effacer toutes les tâches et sessions ? Cette action est irréversible."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text("Annuler"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              final base = BaseWidget.of(context);
+              await base.dataStore.box.clear(); // Efface les tâches
+              await base.dataStore.sessionBox.clear(); // Efface les sessions
+              Navigator.of(ctx).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Toutes les données ont été effacées")),
+              );
+            },
+            child: const Text("Effacer", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final base = BaseWidget.of(context);
     
+    // Écoute les changements dans la boîte UserProfile
     return ValueListenableBuilder<Box<UserProfile>>(
       valueListenable: base.dataStore.listenToUserProfile(),
       builder: (context, box, child) {
-        // Récupère le profil (ou le profil par défaut pour éviter l'erreur si la box est vide)
-        final UserProfile profile = box.isNotEmpty 
-            ? box.getAt(0)! 
-            : UserProfile.defaultProfile();
+        
+        // Récupère le profil de l'utilisateur connecté pour l'affichage
+        final UserProfile? loggedInProfile = base.dataStore.getLoggedInUserProfile();
+        final UserProfile profile = loggedInProfile ?? UserProfile.defaultProfile();
+        final bool isUserConnected = loggedInProfile != null;
 
         return Scaffold(
           appBar: AppBar(
             backgroundColor: MyColors.primaryColor,
             elevation: 0,
             title: const Text("Paramètres", style: TextStyle(color: Colors.white)),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
+            // 👈 CORRECTION 2: Suppression du bouton de retour ('leading')
           ),
           body: ListView(
             padding: const EdgeInsets.all(16.0),
@@ -59,22 +91,21 @@ class SettingsView extends StatelessWidget {
               // 1. GESTION DES NOTIFICATIONS
               SwitchListTile(
                 title: const Text("Activer les notifications"),
-                subtitle: const Text("Recevez des rappels pour vos sessions de travail."),
+                subtitle: Text(isUserConnected ? "Recevez des rappels pour vos sessions de travail." : "Connectez-vous pour activer les notifications."),
                 value: profile.notificationsEnabled,
                 activeColor: MyColors.primaryColor,
-                onChanged: (bool newValue) {
+                onChanged: isUserConnected ? (bool newValue) {
                   _updateProfileSettings(context, (p) {
                     p.notificationsEnabled = newValue;
                   });
-                  // NOTE: L'implémentation réelle des notifications dépend d'un package (ex: flutter_local_notifications)
-                },
+                } : null, // Désactive le switch si non connecté
               ),
               const Divider(),
               
               // 2. GESTION DU THÈME
               ListTile(
                 title: const Text("Mode d'affichage (Thème)"),
-                subtitle: Text(profile.themeMode == 0 ? "Clair" : "Sombre"),
+                subtitle: Text(isUserConnected ? (profile.themeMode == 0 ? "Clair" : "Sombre") : "Connectez-vous pour choisir le thème."),
                 trailing: DropdownButton<int>(
                   value: profile.themeMode,
                   items: const [
@@ -87,33 +118,45 @@ class SettingsView extends StatelessWidget {
                       child: Text("Sombre"),
                     ),
                   ],
-                  onChanged: (int? newMode) {
+                  onChanged: isUserConnected ? (int? newMode) {
                     if (newMode != null) {
                       _updateProfileSettings(context, (p) {
                         p.themeMode = newMode;
                       });
                       
-                      // ⚠️ Pour que le thème s'applique, vous devrez mettre à jour 
-                      // le Material App dans lib/main.dart pour écouter la valeur
-                      // 'profile.themeMode' et utiliser ThemeMode.light ou ThemeMode.dark.
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Thème modifié. (Nécessite un redémarrage de l'app pour les changements complets)")),
+                      );
                     }
-                  },
+                  } : null, // Désactive le dropdown si non connecté
                 ),
               ),
               const Divider(),
 
-              // 3. (Optionnel) Vider les données
+              // 3. Vider les données (Fonctionnalité technique, non liée à l'utilisateur)
               ListTile(
                 leading: const Icon(Icons.delete_sweep, color: Colors.red),
                 title: const Text("Effacer toutes les tâches et sessions"),
                 subtitle: const Text("Attention : cette action est irréversible."),
-                onTap: () {
-                  // Vous devez ajouter la logique de confirmation ici, puis :
-                  // base.dataStore.box.clear();
-                  // base.dataStore.sessionBox.clear();
-                  // Navigator.of(context).pop();
-                },
-              )
+                onTap: () => _clearAllData(context),
+              ),
+              const Divider(),
+
+              // 4. Déconnexion (uniquement si connecté)
+              if (isUserConnected)
+                ListTile(
+                  leading: const Icon(Icons.logout, color: Colors.red),
+                  title: const Text("Se déconnecter"),
+                  subtitle: const Text("Vous serez déconnecté de l'application."),
+                  onTap: () async {
+                    await base.dataStore.logout();
+                    // Retour à l'écran racine, MainWrapper gérera la navigation vers la connexion
+                    Navigator.of(context).pushNamedAndRemoveUntil(
+                      '/',
+                      (route) => false,
+                    );
+                  },
+                ),
             ],
           ),
         );

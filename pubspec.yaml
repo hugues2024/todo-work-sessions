@@ -12,23 +12,23 @@ dependencies:
   flutter:
     sdk: flutter
   # Pour ouvrir les liens externes (GitHub)
-  url_launcher: ^6.2.2 
-
+  url_launcher: ^6.3.2 
+  image_picker: ^1.0.4 # Assurez-vous d'avoir la dernière version stable
   # Pour l'icône GitHub (FaIcon)
-  font_awesome_flutter: ^10.6.0
+  font_awesome_flutter: ^10.12.0
 
   flutter_native_splash: ^2.4.0
   cupertino_icons: ^1.0.2
   hive: ^2.0.4
   hive_flutter: ^1.1.0
-  uuid: ^3.0.5
-  intl: ^0.17.0
+  uuid: ^4.5.2
+  intl: ^0.20.2
   flutter_datetime_picker_plus: ^2.1.0 # Ou la version la plus récente
-  animate_do: ^2.1.0
-  panara_dialogs: ^0.1.2
-  lottie: ^1.4.0
+  animate_do: ^4.2.0
+  panara_dialogs: ^0.1.5
+  lottie: ^3.3.2
   ftoast: ^2.0.0
-  flutter_slider_drawer: ^2.1.1
+  flutter_slider_drawer: ^3.0.2
 
 dev_dependencies:
   flutter_test:
