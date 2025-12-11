@@ -1,4 +1,3 @@
-
 // lib/main.dart
 
 //? CodeWithFlexz on Instagram
@@ -24,9 +23,19 @@ import '../view/main_wrapper.dart';
 Future<void> main() async {
   // Initialisation des bindings avant Hive
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   /// Initialisation de Hive
   await Hive.initFlutter();
+
+  // ⚠️ AGGRESSIVE CLEANUP: This will delete all data.
+  // This is a one-time fix for the persistent "unknown typeId" error.
+  // REMOVE THIS BLOCK after running the app successfully once.
+  // It is also recommended to do a full COLD RESTART (stop and run), not a hot restart.
+  await Hive.deleteBoxFromDisk(HiveDataStore.boxName);
+  await Hive.deleteBoxFromDisk("userProfileBox");
+  await Hive.deleteBoxFromDisk("workSessionsBox");
+  await Hive.deleteBoxFromDisk("userAuthBox");
+  await Hive.deleteFromDisk(); // Last resort catch-all
 
   // Enregistrement des adaptateurs
   Hive.registerAdapter<Task>(TaskAdapter());
