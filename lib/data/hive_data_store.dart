@@ -14,10 +14,13 @@ class HiveDataStore {
   static const boxName = "tasksBox";
 
   // Définitions des Boxes
-  final Box<UserProfile> userBox = Hive.box<UserProfile>("userProfileBox");
-  final Box<WorkSession> sessionBox = Hive.box<WorkSession>("workSessionsBox"); 
-  final Box<Task> box = Hive.box<Task>(boxName);
-  final Box<UserAuth> authBox = Hive.box<UserAuth>("userAuthBox");
+  final Box<Task> box; // Box Task
+  final Box<WorkSession> sessionBox; // Box WorkSession
+  final Box<UserProfile> profileBox; // Box UserProfile
+  final Box<UserAuth> authBox; // Box UserAuth
+
+  // Le constructeur DOIT accepter les 4 Box en arguments
+  HiveDataStore(this.box, this.sessionBox, this.profileBox, this.authBox);
 
   // =========================================================================
   // 🎯 GESTION DES TÂCHES (CRUD)
@@ -38,7 +41,7 @@ class HiveDataStore {
     await task.save();
   }
 
-  /// Delete task (CORRECTION DE LA FAUTE DE FRAPPE : dalateTask -> deleteTask)
+  /// Delete task
   Future<void> deleteTask({required Task task}) async {
     await task.delete();
   }
@@ -51,46 +54,48 @@ class HiveDataStore {
   // 👤 GESTION DU PROFIL
   // =========================================================================
 
-  // Cette méthode récupère le profil (ou null s'il n'existe pas)
-  // NOTE : Cette méthode est dangereuse si la box est vide (RangeError). 
-  // L'accès sûr est déjà géré dans home_view.dart.
-  UserProfile? getUserProfile() {
-    return userBox.isNotEmpty ? userBox.getAt(0) : null;
-  }
+  /// Récupère le profil de l'utilisateur actuellement connecté
+  UserProfile? getLoggedInUserProfile() {
+    final loggedInUser = getLoggedInUser();
 
-  // Cette méthode ajoute ou met à jour le profil (on utilise un seul index 0)
-  void saveUserProfile(UserProfile profile) {
-    if (userBox.isEmpty) {
-      userBox.add(profile);
-    } else {
-      userBox.putAt(0, profile);
+    if (loggedInUser.email == 'Utilisateur') { 
+        return null; 
+    }
+    
+    // 🎯 CORRECTION/CONFIRMATION : On utilise l'email de l'utilisateur authentifié comme clé du profil
+    return profileBox.get(loggedInUser.email);
+  }
+  
+  /// Sauvegarde ou met à jour le profil (lié à l'utilisateur connecté)
+  Future<void> saveUserProfile(UserProfile profile) async {
+    final loggedInUser = getLoggedInUser();
+    
+    if (loggedInUser.email != 'Utilisateur') {
+      // 🎯 CORRECTION/CONFIRMATION : Met à jour le profil en utilisant l'email comme clé unique
+      await profileBox.put(loggedInUser.email, profile);
     }
   }
 
   ValueListenable<Box<UserProfile>> listenToUserProfile() {
-    return userBox.listenable();
+    return profileBox.listenable();
   }
 
   // =========================================================================
-  // ⏱️ GESTION DES SESSIONS DE TRAVAIL (CRUD) - AJOUTÉ
+  // ⏱️ GESTION DES SESSIONS DE TRAVAIL (CRUD)
   // =========================================================================
 
-  // 1. Ajouter une nouvelle session (CORRECTION : Méthode manquante `addSession`)
   Future<void> addSession({required WorkSession session}) async {
     await sessionBox.put(session.id, session);
   }
 
-  // 2. Supprimer une session (CORRECTION : Méthode manquante `deleteSession`, et faute de frappe corrigée dans les vues)
   Future<void> deleteSession({required WorkSession session}) async {
     await session.delete();
   }
 
-  // 3. Écouter les changements des sessions (CORRECTION : Méthode manquante `listenToSessions`)
   ValueListenable<Box<WorkSession>> listenToSessions() {
     return sessionBox.listenable();
   }
 
-  // Méthode pour trouver une session par ID (optionnel, mais utile)
   WorkSession? findSession({required String id}) {
     return sessionBox.get(id);
   }
@@ -98,23 +103,44 @@ class HiveDataStore {
   // =========================================================================
   // 🔐 GESTION DE L'AUTHENTIFICATION
   // =========================================================================
+  
+  Future<bool> loginUser(String email, String password) async {
+    final user = authBox.get(email);
+    
+    if (user != null && user.password == password) {
+      await logout(); // Déconnecter tous les autres
+      user.isLoggedIn = true;
+      await user.save();
+      return true;
+    }
+    return false;
+  }
 
-  // Vérifier si un utilisateur est connecté
+  Future<bool> signupUser(String email, String password) async {
+    if (authBox.containsKey(email)) {
+      return false; // Utilisateur existe déjà
+    }
+    
+    final newUser = UserAuth(email: email, password: password, isLoggedIn: true);
+    await logout(); // Déconnecter tous les autres
+    
+    await authBox.put(email, newUser);
+    return true;
+  }
+
   bool isUserLoggedIn() {
     return authBox.values.any((user) => user.isLoggedIn);
   }
 
-  // Obtenir l'utilisateur connecté (ou "Utilisateur" par défaut)
   UserAuth getLoggedInUser() {
     final loggedIn = authBox.values.where((user) => user.isLoggedIn);
     if (loggedIn.isNotEmpty) {
       return loggedIn.first;
     }
-    // Utilisateur par défaut
+    // Utilisateur par défaut si personne n'est connecté
     return UserAuth(email: 'Utilisateur', password: '', isLoggedIn: false);
   }
 
-  // Déconnexion
   Future<void> logout() async {
     final users = authBox.values.where((user) => user.isLoggedIn);
     for (var user in users) {

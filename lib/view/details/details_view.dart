@@ -25,11 +25,13 @@ class DetailsView extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: MyColors.primaryColor,
         elevation: 0,
-        title: const Text("Détails du Projet", style: TextStyle(color: Colors.white)),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        title: const Text("Détails de l'application", style: TextStyle(color: Colors.white)),
+        // ❌ SUPPRIMÉ : Le bouton de retour a été retiré,
+        // car la navigation est gérée par la BottomNavigationBar.
+        // leading: IconButton(
+        //   icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+        //   onPressed: () => Navigator.of(context).pop(),
+        // ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
@@ -77,7 +79,7 @@ class DetailsView extends StatelessWidget {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        "Une application de gestion de tâches et de productivité basée sur le principe de la session de travail concentrée (similaire à Pomodoro). Elle utilise Hive pour un stockage local rapide et fiable.",
+                        "Une application de gestion de tâches et de productivité basée sur le principe de la session de travail concentrée. Elle utilise Hive pour un stockage local rapide et fiable.",
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                     ],
@@ -156,12 +158,12 @@ class DetailsView extends StatelessWidget {
                       const SizedBox(height: 10),
                       _buildTeamMember(context, 
                         name: "HOUNKPATIN Hugues", 
-                        role: "Développeur Mobile Principal", 
+                        role: "Développeur Mobile Principal (Scrum Master)", 
                         githubUrl: "https://github.com/hugues2024"
                       ),
                       _buildTeamMember(context, 
                         name: "BELLO Mohamed", 
-                        role: "Developpeur Mobile", 
+                        role: "Developpeur Mobile (Product Owner)", 
                         githubUrl: "https://github.com/mohamedbello18"
                       ),
                       _buildTeamMember(context, 
@@ -185,7 +187,7 @@ class DetailsView extends StatelessWidget {
               delay: const Duration(milliseconds: 400),
               child: Center(
                 child: Text(
-                  "Application développée avec Flutter 💙",
+                  "Application développée avec Flutter 🖥️",
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     color: Colors.grey.shade600,
                   ),

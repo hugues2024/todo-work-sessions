@@ -68,3 +68,4 @@ dynamic deleteAllTask(BuildContext context) {
 
 /// lottie asset address
 String lottieURL = 'assets/lottie/1.json';
+const String defaultProfileImage = 'assets/images/default_profile.png';
