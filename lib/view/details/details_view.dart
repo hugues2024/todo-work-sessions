@@ -25,9 +25,11 @@ class DetailsView extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: MyColors.primaryColor,
         elevation: 0,
-        title: const Text("Détails du Projet", style: TextStyle(color: Colors.white)),
+        title: const Text("Détails de l'Application",
+            style: TextStyle(color: Colors.white)),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios,
+              color: Color.fromARGB(255, 228, 207, 207)),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -58,6 +60,7 @@ class DetailsView extends StatelessWidget {
             const SizedBox(height: 20),
             
             // --- Section 1: À propos de l'application ---
+<<<<<<< HEAD
             FadeInUp(
               duration: const Duration(milliseconds: 600),
               child: Card(
@@ -84,6 +87,14 @@ class DetailsView extends StatelessWidget {
                   ),
                 ),
               ),
+=======
+            Text(
+              "Todo Work Sessions",
+              style: Theme.of(context)
+                  .textTheme
+                  .displayLarge
+                  ?.copyWith(fontSize: 30),
+>>>>>>> origin/prince
             ),
             const SizedBox(height: 20),
 
@@ -116,6 +127,7 @@ class DetailsView extends StatelessWidget {
             const SizedBox(height: 20),
 
             // --- Section 3: Lien GitHub du Projet ---
+<<<<<<< HEAD
             FadeInUp(
               duration: const Duration(milliseconds: 700),
               delay: const Duration(milliseconds: 200),
@@ -137,10 +149,20 @@ class DetailsView extends StatelessWidget {
                   ],
                 ),
               ),
+=======
+            _buildSectionTitle(context, "Code Source de l'Application"),
+            ListTile(
+              leading: const FaIcon(FontAwesomeIcons.github, size: 30),
+              title: const Text("hugues2024/todo-work-sessions"),
+              trailing: const Icon(Icons.open_in_new),
+              onTap: () => _launchUrl(
+                  'https://github.com/hugues2024/todo-work-sessions'),
+>>>>>>> origin/prince
             ),
             const SizedBox(height: 20),
 
             // --- Section 4: Membres de l'équipe (Statique) ---
+<<<<<<< HEAD
             FadeInUp(
               duration: const Duration(milliseconds: 700),
               delay: const Duration(milliseconds: 300),
@@ -179,6 +201,25 @@ class DetailsView extends StatelessWidget {
                 ),
               ),
             ),
+=======
+            _buildSectionTitle(context, "Équipe de Développement"),
+            _buildTeamMember(context,
+                name: "HOUNKPATIN Hugues",
+                role: "Développeur Mobile Principal",
+                githubUrl: "https://github.com/hugues2024"),
+            _buildTeamMember(context,
+                name: "BELLO Mohamed",
+                role: "Developpeur Mobile",
+                githubUrl: "https://github.com/mohamedbello18"),
+            _buildTeamMember(context,
+                name: "PATINDE Nolan",
+                role: "Developpeur Mobile",
+                githubUrl: "https://github.com/Mehdi-ahd"),
+            _buildTeamMember(context,
+                name: "SOTON Prince",
+                role: "Developpeur Mobile",
+                githubUrl: "https://github.com/PrinceSoton"),
+>>>>>>> origin/prince
             const SizedBox(height: 30),
             FadeIn(
               duration: const Duration(milliseconds: 800),
@@ -203,7 +244,10 @@ class DetailsView extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10, top: 5),
       child: Text(
         title,
-        style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 22, color: MyColors.primaryColor),
+        style: Theme.of(context)
+            .textTheme
+            .titleLarge
+            ?.copyWith(fontSize: 22, color: MyColors.primaryColor),
       ),
     );
   }
@@ -211,24 +255,30 @@ class DetailsView extends StatelessWidget {
   Widget _buildFeatureList(List<String> features) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: features.map((feature) => Padding(
-        padding: const EdgeInsets.only(left: 10, bottom: 5),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(
-              padding: EdgeInsets.only(top: 5),
-              child: Icon(Icons.check_circle_outline, size: 16, color: Colors.green),
-            ),
-            const SizedBox(width: 8),
-            Expanded(child: Text(feature, style: const TextStyle(fontSize: 15))),
-          ],
-        ),
-      )).toList(),
+      children: features
+          .map((feature) => Padding(
+                padding: const EdgeInsets.only(left: 10, bottom: 5),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 5),
+                      child: Icon(Icons.check_circle_outline,
+                          size: 16, color: Colors.green),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                        child: Text(feature,
+                            style: const TextStyle(fontSize: 15))),
+                  ],
+                ),
+              ))
+          .toList(),
     );
   }
 
-  Widget _buildTeamMember(BuildContext context, {required String name, required String role, required String githubUrl}) {
+  Widget _buildTeamMember(BuildContext context,
+      {required String name, required String role, required String githubUrl}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: ListTile(
@@ -236,10 +286,15 @@ class DetailsView extends StatelessWidget {
           backgroundColor: MyColors.primaryColor,
           child: FaIcon(FontAwesomeIcons.user, color: Colors.white, size: 18),
         ),
-        title: Text(name, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.black)),
+        title: Text(name,
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.bold, color: Colors.black)),
         subtitle: Text(role),
         trailing: IconButton(
-          icon: const FaIcon(FontAwesomeIcons.github, size: 24, color: Colors.black),
+          icon: const FaIcon(FontAwesomeIcons.github,
+              size: 24, color: Colors.black),
           onPressed: () => _launchUrl(githubUrl),
         ),
         onTap: () => _launchUrl(githubUrl),
