@@ -25,23 +25,7 @@ class DetailsView extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: MyColors.primaryColor,
         elevation: 0,
-<<<<<<< HEAD
-        title: const Text("Détails de l'Application",
-            style: TextStyle(color: Colors.white)),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios,
-              color: Color.fromARGB(255, 228, 207, 207)),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-=======
         title: const Text("Détails de l'application", style: TextStyle(color: Colors.white)),
-        // ❌ SUPPRIMÉ : Le bouton de retour a été retiré,
-        // car la navigation est gérée par la BottomNavigationBar.
-        // leading: IconButton(
-        //   icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-        //   onPressed: () => Navigator.of(context).pop(),
-        // ),
->>>>>>> 0d7354bc094c8945fe4cc8724d4f6553d6795342
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
@@ -70,7 +54,6 @@ class DetailsView extends StatelessWidget {
             const SizedBox(height: 20),
             
             // --- Section 1: À propos de l'application ---
-<<<<<<< HEAD
             FadeInUp(
               duration: const Duration(milliseconds: 600),
               child: Card(
@@ -97,14 +80,6 @@ class DetailsView extends StatelessWidget {
                   ),
                 ),
               ),
-=======
-            Text(
-              "Todo Work Sessions",
-              style: Theme.of(context)
-                  .textTheme
-                  .displayLarge
-                  ?.copyWith(fontSize: 30),
->>>>>>> origin/prince
             ),
             const SizedBox(height: 20),
 
@@ -137,7 +112,6 @@ class DetailsView extends StatelessWidget {
             const SizedBox(height: 20),
 
             // --- Section 3: Lien GitHub du Projet ---
-<<<<<<< HEAD
             FadeInUp(
               duration: const Duration(milliseconds: 700),
               delay: const Duration(milliseconds: 200),
@@ -159,20 +133,10 @@ class DetailsView extends StatelessWidget {
                   ],
                 ),
               ),
-=======
-            _buildSectionTitle(context, "Code Source de l'Application"),
-            ListTile(
-              leading: const FaIcon(FontAwesomeIcons.github, size: 30),
-              title: const Text("hugues2024/todo-work-sessions"),
-              trailing: const Icon(Icons.open_in_new),
-              onTap: () => _launchUrl(
-                  'https://github.com/hugues2024/todo-work-sessions'),
->>>>>>> origin/prince
             ),
             const SizedBox(height: 20),
 
             // --- Section 4: Membres de l'équipe (Statique) ---
-<<<<<<< HEAD
             FadeInUp(
               duration: const Duration(milliseconds: 700),
               delay: const Duration(milliseconds: 300),
@@ -211,25 +175,6 @@ class DetailsView extends StatelessWidget {
                 ),
               ),
             ),
-=======
-            _buildSectionTitle(context, "Équipe de Développement"),
-            _buildTeamMember(context,
-                name: "HOUNKPATIN Hugues",
-                role: "Développeur Mobile Principal",
-                githubUrl: "https://github.com/hugues2024"),
-            _buildTeamMember(context,
-                name: "BELLO Mohamed",
-                role: "Developpeur Mobile",
-                githubUrl: "https://github.com/mohamedbello18"),
-            _buildTeamMember(context,
-                name: "PATINDE Nolan",
-                role: "Developpeur Mobile",
-                githubUrl: "https://github.com/Mehdi-ahd"),
-            _buildTeamMember(context,
-                name: "SOTON Prince",
-                role: "Developpeur Mobile",
-                githubUrl: "https://github.com/PrinceSoton"),
->>>>>>> origin/prince
             const SizedBox(height: 30),
             FadeIn(
               duration: const Duration(milliseconds: 800),

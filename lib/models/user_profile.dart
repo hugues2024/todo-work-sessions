@@ -6,6 +6,10 @@ part 'user_profile.g.dart';
 
 @HiveType(typeId: 2) 
 class UserProfile extends HiveObject {
+
+  // 🚀 AJOUT: Clé statique pour le profil par défaut
+  static const String defaultProfileId = 'default_profile';
+
   @HiveField(0)
   String? name;
 
@@ -16,7 +20,7 @@ class UserProfile extends HiveObject {
   String? imagePath; // Chemin local de la photo de profil
 
   @HiveField(3) 
-  int themeMode; // 0: Système, 1: Clair, 2: Sombre (J'ai conservé int pour la flexibilité)
+  int themeMode; // 0: Système, 1: Clair, 2: Sombre
 
   @HiveField(4) 
   bool notificationsEnabled;
@@ -25,14 +29,10 @@ class UserProfile extends HiveObject {
     this.name, 
     this.profession, 
     this.imagePath,
-    // Initialisation par défaut
-    this.themeMode = 0, // Défaut : Système ou Clair
+    this.themeMode = 0, 
     this.notificationsEnabled = true,
   });
 
-  // ==========================================================
-  // 🛠️ MÉTHODE COPYWITH (AJOUT POUR LA MISE À JOUR IMMUABLE)
-  // ==========================================================
   UserProfile copyWith({
     String? name,
     String? profession,
@@ -41,7 +41,6 @@ class UserProfile extends HiveObject {
     bool? notificationsEnabled,
   }) {
     return UserProfile(
-      // Si un nouveau paramètre est fourni, on l'utilise, sinon on garde l'ancien (this.champ)
       name: name ?? this.name,
       profession: profession ?? this.profession,
       imagePath: imagePath ?? this.imagePath,
@@ -50,12 +49,11 @@ class UserProfile extends HiveObject {
     );
   }
 
-  // Méthode pour obtenir un profil par défaut/initial (utile lors de l'inscription)
   static UserProfile defaultProfile() {
     return UserProfile(
       name: null,
       profession: null,
-      imagePath: null, // L'image par défaut est gérée dans la vue ProfileView
+      imagePath: null, 
       themeMode: 0, 
       notificationsEnabled: true, 
     );

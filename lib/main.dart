@@ -21,41 +21,61 @@ import '../view/auth/login_view.dart';
 import '../view/main_wrapper.dart'; 
 
 Future<void> main() async {
-  // 👈 CORRECTION 1: Initialisation des bindings avant Hive
+  // Initialisation des bindings avant Hive
   WidgetsFlutterBinding.ensureInitialized();
-  
-  /// Initial Hive DB
+
+  /// Initialisation de Hive
   await Hive.initFlutter();
 
-  // --- 1. ENREGISTREMENT DES ADAPTATEURS ---
+  // ⚠️ AGGRESSIVE CLEANUP: This will delete all data.
+  // This is a one-time fix for the persistent "unknown typeId" error.
+  // REMOVE THIS BLOCK after running the app successfully once.
+  // It is also recommended to do a full COLD RESTART (stop and run), not a hot restart.
+  await Hive.deleteBoxFromDisk(HiveDataStore.boxName);
+  await Hive.deleteBoxFromDisk("userProfileBox");
+  await Hive.deleteBoxFromDisk("workSessionsBox");
+  await Hive.deleteBoxFromDisk("userAuthBox");
+  await Hive.deleteFromDisk(); // Last resort catch-all
+
+  // Enregistrement des adaptateurs
   Hive.registerAdapter<Task>(TaskAdapter());
   Hive.registerAdapter<TaskStep>(TaskStepAdapter()); 
   Hive.registerAdapter<UserProfile>(UserProfileAdapter());
   Hive.registerAdapter<WorkSession>(WorkSessionAdapter());
   Hive.registerAdapter<UserAuth>(UserAuthAdapter());
 
-  /// Open boxes
-  // Utilisation des noms de boîte définis dans HiveDataStore pour plus de clarté
+  // Ouverture des boîtes
   final taskBox = await Hive.openBox<Task>(HiveDataStore.boxName); 
   final profileBox = await Hive.openBox<UserProfile>("userProfileBox"); 
   final sessionBox = await Hive.openBox<WorkSession>("workSessionsBox");
   final authBox = await Hive.openBox<UserAuth>("userAuthBox"); 
 
-  // 👈 CORRECTION 2: Création de l'instance HiveDataStore avec les 4 boxes
+  // 🚀 GARANTIE : S'assure qu'un profil par défaut existe toujours dans la boîte.
+  if (profileBox.get(UserProfile.defaultProfileId) == null) {
+    profileBox.put(UserProfile.defaultProfileId, UserProfile.defaultProfile());
+  }
+
+  // Création de l'instance HiveDataStore
   final HiveDataStore dataStore = HiveDataStore(taskBox, sessionBox, profileBox, authBox);
 
-  // ... (Logique de suppression des anciennes tâches - inchangée)
+  // On peut maintenant lire le profil en toute sécurité.
+  final UserProfile profile = dataStore.getLoggedInUserProfile() ?? 
+                             profileBox.get(UserProfile.defaultProfileId)!;
 
-  // 👈 CORRECTION 3: Passer l'instance dataStore à BaseWidget
+  if (profile.notificationsEnabled) {
+    print("✅ Notifications activées. Initialisation du service...");
+  } else {
+    print("❌ Notifications désactivées.");
+  }
+
+  // Lancement de l'application
   runApp(BaseWidget(dataStore: dataStore, child: const MyApp()));
 }
 
 class BaseWidget extends InheritedWidget {
-  // 👈 CORRECTION 4: Définir dataStore comme une propriété requise et non auto-instanciée
   final HiveDataStore dataStore; 
   final Widget child;
 
-  // 👈 CORRECTION 5: Mettre à jour le constructeur pour accepter le dataStore
   BaseWidget({
     Key? key, 
     required this.dataStore,
@@ -84,82 +104,43 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final base = BaseWidget.of(context);
 
-    // Écoute les changements de la boîte pour réagir aux mises à jour de profil (thème)
     return ValueListenableBuilder<Box<UserProfile>>(
       valueListenable: base.dataStore.listenToUserProfile(),
       builder: (context, box, child) {
 
-        // Lecture du profil via la méthode DataStore (robuste pour l'utilisateur connecté)
-        final UserProfile? loggedInProfile = base.dataStore.getLoggedInUserProfile();
-        final UserProfile profile = loggedInProfile ?? UserProfile.defaultProfile();
+        final UserProfile profile = base.dataStore.getLoggedInUserProfile() ?? 
+                                    box.get(UserProfile.defaultProfileId)!; // Le '!' est maintenant sûr.
         
-        // Détermination du ThemeMode (0=Clair, 1=Sombre, nous excluons le mode Système pour le moment)
         ThemeMode currentThemeMode = profile.themeMode == 1 ? ThemeMode.dark : ThemeMode.light;
 
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'Todo Work Sessions',
-
           themeMode: currentThemeMode, 
-
-          // --- 3. THÈME CLAIR (ThemeData) ---
           theme: ThemeData(
             primaryColor: MyColors.primaryColor,
             useMaterial3: true,
             brightness: Brightness.light,
             scaffoldBackgroundColor: Colors.white,
             textTheme: const TextTheme(
-              displayLarge: TextStyle(
-                color: MyColors.primaryColor, 
-                fontWeight: FontWeight.bold,
-                fontSize: 35, 
-              ),
-              titleMedium: TextStyle(
-                color: Colors.grey,
-                fontSize: 16,
-                fontWeight: FontWeight.w300,
-              ),
-              displayMedium: TextStyle(
-                color: Colors.white,
-                fontSize: 21,
-              ),
-              // ... autres styles...
+              displayLarge: TextStyle(color: MyColors.primaryColor, fontWeight: FontWeight.bold, fontSize: 35),
+              titleMedium: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w300),
+              displayMedium: TextStyle(color: Colors.white, fontSize: 21),
             ),
           ),
-
-          // --- 4. THÈME SOMBRE (darkTheme) ---
           darkTheme: ThemeData(
             brightness: Brightness.dark,
             primaryColor: MyColors.primaryColor,
             useMaterial3: true,
             scaffoldBackgroundColor: const Color(0xFF121212), 
             textTheme: const TextTheme(
-              displayLarge: TextStyle(
-                color: Colors.white, 
-                fontWeight: FontWeight.bold,
-                fontSize: 35,
-              ),
-              titleMedium: TextStyle(
-                color: Colors.grey,
-                fontSize: 16,
-                fontWeight: FontWeight.w300,
-              ),
-              displayMedium: TextStyle(
-                color: Colors.white,
-                fontSize: 21,
-              ),
-              titleSmall: TextStyle(
-                color: Colors.white70,
-                fontWeight: FontWeight.w500,
-              ),
-              titleLarge: TextStyle(
-                fontSize: 40,
-                color: Colors.white,
-                fontWeight: FontWeight.w300,
-              ),
+              displayLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 35),
+              titleMedium: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w300),
+              displayMedium: TextStyle(color: Colors.white, fontSize: 21),
+              titleSmall: TextStyle(color: Colors.white70, fontWeight: FontWeight.w500),
+              titleLarge: TextStyle(fontSize: 40, color: Colors.white, fontWeight: FontWeight.w300),
             ),
           ),
-
           home: const MainWrapper(), 
         );
       },
