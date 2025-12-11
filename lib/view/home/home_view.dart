@@ -300,6 +300,7 @@ class FAB extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FloatingActionButton(
+      heroTag: "add_task",
       backgroundColor: MyColors.primaryColor,
       onPressed: () {
         // Appelle la vue de création/édition de tâche sans arguments pour le mode création
