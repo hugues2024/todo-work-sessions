@@ -1,3 +1,5 @@
+// lib/view/home/widgets/task_widget.dart
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -18,32 +20,32 @@ class TaskWidget extends StatefulWidget {
 }
 
 class _TaskWidgetState extends State<TaskWidget> {
-  TextEditingController taskControllerForTitle = TextEditingController();
-  TextEditingController taskControllerForSubtitle = TextEditingController();
-  @override
-  void initState() {
-    super.initState();
-    taskControllerForTitle.text = widget.task.title;
-    taskControllerForSubtitle.text = widget.task.subtitle;
-  }
+  // Suppression des TextEditingController locaux.
+  // La vue TaskView gère maintenant les contrôleurs en interne.
+  // Les données sont lues directement depuis widget.task.
+  
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   // Logique initState non nécessaire
+  // }
 
-  @override
-  void dispose() {
-    taskControllerForTitle.dispose();
-    taskControllerForSubtitle.dispose();
-    super.dispose();
-  }
+  // @override
+  // void dispose() {
+  //   // Logique dispose non nécessaire
+  //   super.dispose();
+  // }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
+        // CORRECTION: Appel du constructeur TaskView simplifié.
+        // Nous passons seulement la tâche à éditer.
         Navigator.push(
           context,
           CupertinoPageRoute(
             builder: (ctx) => TaskView(
-              taskControllerForTitle: taskControllerForTitle,
-              taskControllerForSubtitle: taskControllerForSubtitle,
               task: widget.task,
             ),
           ),
@@ -57,7 +59,7 @@ class _TaskWidgetState extends State<TaskWidget> {
         decoration: BoxDecoration(
             color: widget.task.isCompleted
                 ? Colors.green.shade50
-                : Colors.white,
+                : Theme.of(context).cardColor, // Utilise cardColor pour le thème
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
@@ -90,32 +92,43 @@ class _TaskWidgetState extends State<TaskWidget> {
             /// Check icon
             leading: GestureDetector(
               onTap: () {
-                // Marquer/démarquer la tâche comme complétée
-                widget.task.isCompleted = !widget.task.isCompleted;
-                
-                // Synchroniser toutes les étapes avec l'état de la tâche
-                for (var step in widget.task.steps) {
-                  step.isCompleted = widget.task.isCompleted;
-                  if (widget.task.isCompleted) {
-                    step.completedAt = DateTime.now();
-                  } else {
-                    step.completedAt = null;
+                setState(() { // setState est nécessaire pour rafraîchir l'icône dans ce widget
+                  // Marquer/démarquer la tâche comme complétée
+                  widget.task.isCompleted = !widget.task.isCompleted;
+                  
+                  // Synchroniser toutes les étapes avec l'état de la tâche
+                  for (var step in widget.task.steps) {
+                    step.isCompleted = widget.task.isCompleted;
+                    if (widget.task.isCompleted) {
+                      step.completedAt = DateTime.now();
+                    } else {
+                      step.completedAt = null;
+                    }
                   }
-                }
-                
-                widget.task.save();
+                  
+                  // Assurez-vous d'appeler save pour persister l'état
+                  widget.task.save(); 
+                });
               },
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 600),
+                duration: const Duration(milliseconds: 300),
                 decoration: BoxDecoration(
                     color: widget.task.isCompleted
                         ? MyColors.primaryColor
                         : Colors.white,
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.grey, width: .8)),
-                child: const Icon(
-                  Icons.check,
-                  color: Colors.white,
+                    border: Border.all(
+                      color: widget.task.isCompleted ? MyColors.primaryColor : Colors.grey, 
+                      width: 1.5 // Rendu plus visible
+                    )
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: Icon(
+                    Icons.check,
+                    color: widget.task.isCompleted ? Colors.white : Colors.transparent, // L'icône est invisible si non complété
+                    size: 18,
+                  ),
                 ),
               ),
             ),
@@ -124,11 +137,11 @@ class _TaskWidgetState extends State<TaskWidget> {
             title: Padding(
               padding: const EdgeInsets.only(bottom: 5, top: 3),
               child: Text(
-                taskControllerForTitle.text,
+                widget.task.title, // CORRECTION: Lecture directe de la propriété
                 style: TextStyle(
                     color: widget.task.isCompleted
                         ? Colors.grey.shade600
-                        : Colors.black,
+                        : Theme.of(context).textTheme.titleMedium?.color, // Utilise la couleur du thème
                     fontWeight: FontWeight.w600,
                     fontSize: 16,
                     decoration: widget.task.isCompleted
@@ -141,19 +154,21 @@ class _TaskWidgetState extends State<TaskWidget> {
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  taskControllerForSubtitle.text,
-                  style: TextStyle(
-                    color: widget.task.isCompleted
-                        ? Colors.grey.shade500
-                        : Colors.grey.shade600,
-                    fontWeight: FontWeight.w400,
-                    fontSize: 14,
-                    decoration: widget.task.isCompleted
-                        ? TextDecoration.lineThrough
-                        : null,
+                // Affiche le sous-titre uniquement s'il n'est pas vide
+                if (widget.task.subtitle.trim().isNotEmpty)
+                  Text(
+                    widget.task.subtitle, // CORRECTION: Lecture directe de la propriété
+                    style: TextStyle(
+                      color: widget.task.isCompleted
+                          ? Colors.grey.shade500
+                          : Colors.grey.shade600,
+                      fontWeight: FontWeight.w400,
+                      fontSize: 14,
+                      decoration: widget.task.isCompleted
+                          ? TextDecoration.lineThrough
+                          : null,
+                    ),
                   ),
-                ),
 
                 const SizedBox(height: 8),
 

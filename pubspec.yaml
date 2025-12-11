@@ -13,7 +13,7 @@ dependencies:
     sdk: flutter
   # Pour ouvrir les liens externes (GitHub)
   url_launcher: ^6.3.2 
-
+  image_picker: ^1.0.4 # Assurez-vous d'avoir la dernière version stable
   # Pour l'icône GitHub (FaIcon)
   font_awesome_flutter: ^10.12.0
 

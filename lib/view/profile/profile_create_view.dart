@@ -3,140 +3,201 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb; // 👈 Import pour détecter le Web
 
 ///
 import '../../main.dart';
 import '../../models/user_profile.dart';
 import '../../utils/colors.dart';
-import '../../utils/constanst.dart'; // Pour emptyFieldsWarning
+import '../../utils/constanst.dart'; // Pour emptyFieldsWarning et defaultProfileImage
 import '../../utils/strings.dart';
+// NOTE: L'importation de utils.dart a été supprimée pour corriger l'erreur de fichier manquant.
 
 class ProfileCreateView extends StatefulWidget {
+  final bool isLoginMode;
+  final UserProfile? existingProfile;
+
   const ProfileCreateView({
     Key? key,
+    required this.isLoginMode, 
     this.existingProfile,
   }) : super(key: key);
-
-  final UserProfile? existingProfile;
 
   @override
   State<ProfileCreateView> createState() => _ProfileCreateViewState();
 }
 
 class _ProfileCreateViewState extends State<ProfileCreateView> {
+  // Contrôleurs pour l'AUTHENTIFICATION
+  late TextEditingController _emailController;
+  late TextEditingController _passwordController;
+  
+  // Contrôleurs pour le PROFIL
   late TextEditingController _nameController;
   late TextEditingController _professionController;
   
-  // Note : La gestion de l'image est simplifiée ici (pas de sélecteur de fichier)
-
+  String? _imagePath; 
+  XFile? _pickedFileForWeb; 
+  
   @override
   void initState() {
     super.initState();
-    // Initialisation des contrôleurs avec les données existantes ou des chaînes vides
+    _emailController = TextEditingController();
+    _passwordController = TextEditingController();
+    
     _nameController = TextEditingController(
       text: widget.existingProfile?.name ?? '',
     );
     _professionController = TextEditingController(
       text: widget.existingProfile?.profession ?? '',
     );
+    
+    _imagePath = widget.existingProfile?.imagePath;
   }
 
   @override
   void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
     _nameController.dispose();
     _professionController.dispose();
     super.dispose();
   }
   
-  // Fonction de sauvegarde du profil
-  void _saveProfile() {
-    final dataStore = BaseWidget.of(context).dataStore;
-    final String name = _nameController.text.trim();
-    final String profession = _professionController.text.trim();
+  /// Gère la sélection d'image de manière compatible Web/Mobile
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final XFile? pickedFile = await picker.pickImage(source: ImageSource.gallery);
 
-    if (name.isEmpty) {
-      emptyFieldsWarning(context); // Afficher une alerte
+    if (pickedFile != null) {
+      setState(() {
+        _imagePath = pickedFile.path;
+        
+        if (kIsWeb) {
+          _pickedFileForWeb = pickedFile;
+        }
+      });
+    }
+  }
+
+  /// Gère la soumission du formulaire
+  void _handleFormSubmission() async {
+    final dataStore = BaseWidget.of(context).dataStore;
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    final name = _nameController.text.trim();
+    
+    // ======================================================
+    // 1. GESTION DE L'AUTHENTIFICATION (SI NON CONNECTÉ)
+    // ======================================================
+    if (!dataStore.isUserLoggedIn()) {
+      bool authSuccess = false;
+      String errorMessage = MyString.authError;
+
+      if (widget.isLoginMode) {
+        // Mode CONNEXION
+        if (email.isEmpty || password.isEmpty) {
+          emptyFieldsWarning(context);
+          return;
+        }
+        authSuccess = await dataStore.loginUser(email, password);
+        if (!authSuccess) {
+          errorMessage = MyString.loginFailed;
+        }
+      } else {
+        // Mode INSCRIPTION
+        if (email.isEmpty || password.isEmpty || name.isEmpty) {
+          emptyFieldsWarning(context);
+          return;
+        }
+        authSuccess = await dataStore.signupUser(email, password);
+        if (!authSuccess) {
+          errorMessage = MyString.signupFailed; 
+        }
+      }
+
+      if (authSuccess) {
+        if (!widget.isLoginMode) {
+          final UserProfile newProfile = UserProfile(
+            name: name,
+            profession: _professionController.text.trim(),
+            imagePath: _imagePath, 
+            themeMode: 0, 
+            notificationsEnabled: true,
+          );
+          await dataStore.saveUserProfile(newProfile);
+        }
+        
+        // CORRECTION CRUCIALE : Naviguer vers la racine pour forcer le MainWrapper à recharger
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text(errorMessage)),
+        );
+      }
       return;
     }
+    
+    // ======================================================
+    // 2. GESTION DE L'ÉDITION DU PROFIL (SI CONNECTÉ)
+    // ======================================================
+    if (dataStore.isUserLoggedIn() && widget.existingProfile != null) {
+       if (name.isEmpty) {
+         emptyFieldsWarning(context);
+         return;
+       }
+       
+       final UserProfile profileToSave = widget.existingProfile!.copyWith(
+          name: name,
+          profession: _professionController.text.trim(),
+          imagePath: _imagePath, 
+       );
+       
+       await dataStore.saveUserProfile(profileToSave); 
+       Navigator.of(context).pop();
+       return;
+    }
+  }
 
-    final UserProfile profileToSave = UserProfile(
-      name: name,
-      profession: profession,
-      // Conserver l'ancien chemin d'image si on est en mode édition
-      imagePath: widget.existingProfile?.imagePath ?? 'assets/img/main.png', 
-    );
+  // Fonction utilitaire pour l'affichage de l'image (compatible Web/Mobile)
+  ImageProvider<Object> _getProfileImage() {
+    // Si nous avons sélectionné un fichier sur le Web et qu'il est encore en mémoire
+    if (kIsWeb && _pickedFileForWeb != null) {
+      return NetworkImage(_pickedFileForWeb!.path);
+    }
     
-    // La méthode HiveDataStore gère la logique de add vs putAt(0)
-    dataStore.saveUserProfile(profileToSave); 
+    // Si nous sommes sur mobile et que nous avons un chemin d'accès
+    if (!kIsWeb && _imagePath != null) {
+      final file = File(_imagePath!);
+      // Vérifiez si le fichier existe pour éviter les erreurs FileSystemException (Mobile)
+      if (file.existsSync()) {
+        return FileImage(file);
+      }
+    }
     
-    Navigator.of(context).pop();
+    // Sinon, utiliser l'image par défaut (asset)
+    return AssetImage(defaultProfileImage);
   }
 
 
   @override
   Widget build(BuildContext context) {
-    final base = BaseWidget.of(context);
+    final bool isLoggedIn = BaseWidget.of(context).dataStore.isUserLoggedIn();
+    final bool isEditing = isLoggedIn && widget.existingProfile != null;
     
-    // Vérifier si l'utilisateur est connecté
-    if (!base.dataStore.isUserLoggedIn()) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text("Profil", style: TextStyle(color: Colors.white)),
-          backgroundColor: MyColors.primaryColor,
-          leading: IconButton(
-            icon: const Icon(Icons.close, color: Colors.white),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(30.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.lock_outline, size: 80, color: Colors.grey.shade400),
-                const SizedBox(height: 20),
-                Text(
-                  "Connexion requise",
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  "Vous devez être connecté pour créer ou modifier votre profil",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey.shade600),
-                ),
-                const SizedBox(height: 30),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).pushNamed('/login');
-                  },
-                  icon: const Icon(Icons.login, color: Colors.white),
-                  label: const Text("Se connecter", style: TextStyle(color: Colors.white)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: MyColors.primaryColor,
-                    minimumSize: const Size(200, 50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-    
+    String title = isEditing 
+        ? MyString.updateProfile 
+        : widget.isLoginMode ? MyString.loginTitle : MyString.signupTitle;
+
+    final bool showDefaultIcon = _imagePath == null;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          widget.existingProfile == null ? MyString.addNewProfile : MyString.updateProfile, 
-          style: const TextStyle(color: Colors.white)
-        ),
+        title: Text(title, style: const TextStyle(color: Colors.white)),
         backgroundColor: MyColors.primaryColor,
+        // Bouton de retour : icône Close pour une action modale
         leading: IconButton(
           icon: const Icon(Icons.close, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
@@ -148,41 +209,39 @@ class _ProfileCreateViewState extends State<ProfileCreateView> {
           children: [
             const SizedBox(height: 20),
             
-            // Avatar cliquable (placeholder)
-            GestureDetector(
-              onTap: () {
-                // Future: ajouter sélecteur d'image
-              },
-              child: Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 60,
-                    backgroundColor: MyColors.primaryColor.withOpacity(0.1),
-                    child: const Icon(
-                      Icons.person,
-                      size: 60,
-                      color: MyColors.primaryColor,
+            // --- SECTION IMAGE ---
+            if (isEditing || !widget.isLoginMode)
+              GestureDetector(
+                onTap: _pickImage,
+                child: Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 60,
+                      backgroundColor: MyColors.primaryColor.withOpacity(0.1),
+                      backgroundImage: showDefaultIcon ? null : _getProfileImage(),
+                      child: showDefaultIcon 
+                          ? const Icon(Icons.person, size: 60, color: MyColors.primaryColor)
+                          : null,
                     ),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: MyColors.primaryColor,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: MyColors.primaryColor,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: const Icon(Icons.camera_alt, size: 18, color: Colors.white),
                       ),
-                      child: const Icon(Icons.camera_alt, size: 18, color: Colors.white),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
             const SizedBox(height: 30),
             
-            // Card pour les champs
+            // --- CHAMPS AUTHENTIFICATION ET PROFIL ---
             Card(
               elevation: 2,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -190,40 +249,63 @@ class _ProfileCreateViewState extends State<ProfileCreateView> {
                 padding: const EdgeInsets.all(20.0),
                 child: Column(
                   children: [
-                    // Champ Nom Complet
-                    TextField(
-                      controller: _nameController,
-                      decoration: InputDecoration(
-                        labelText: "Nom Complet",
-                        helperText: "Entrez votre nom complet",
-                        prefixIcon: const Icon(Icons.person, color: MyColors.primaryColor),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: MyColors.primaryColor, width: 2),
+                    // Champ Email (toujours affiché en mode Auth)
+                    if (!isEditing)
+                      TextField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          labelText: MyString.email,
+                          prefixIcon: const Icon(Icons.email, color: MyColors.primaryColor),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: MyColors.primaryColor, width: 2)),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
+                    
+                    if (!isEditing) const SizedBox(height: 20),
 
-                    // Champ Profession
-                    TextField(
-                      controller: _professionController,
-                      decoration: InputDecoration(
-                        labelText: "Profession",
-                        helperText: "Ex: Développeur, Designer, etc.",
-                        prefixIcon: const Icon(Icons.work, color: MyColors.primaryColor),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: MyColors.primaryColor, width: 2),
+                    // Champ Mot de passe (toujours affiché en mode Auth)
+                    if (!isEditing)
+                      TextField(
+                        controller: _passwordController,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          labelText: MyString.password,
+                          prefixIcon: const Icon(Icons.lock, color: MyColors.primaryColor),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: MyColors.primaryColor, width: 2)),
                         ),
                       ),
-                    ),
+                    
+                    if (!isEditing && (!widget.isLoginMode || isEditing)) const SizedBox(height: 20),
+                    
+                    // Champ Nom Complet (Affiché en mode Inscription ou Édition)
+                    if (!widget.isLoginMode || isEditing)
+                      TextField(
+                        controller: _nameController,
+                        decoration: InputDecoration(
+                          labelText: "Nom Complet",
+                          helperText: "Entrez votre nom complet (requis pour l'inscription)",
+                          prefixIcon: const Icon(Icons.person, color: MyColors.primaryColor),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: MyColors.primaryColor, width: 2)),
+                        ),
+                      ),
+                    
+                    if (!widget.isLoginMode || isEditing) const SizedBox(height: 20),
+
+                    // Champ Profession (Affiché en mode Inscription ou Édition)
+                    if (!widget.isLoginMode || isEditing)
+                      TextField(
+                        controller: _professionController,
+                        decoration: InputDecoration(
+                          labelText: "Profession",
+                          helperText: "Ex: Développeur, Designer, etc.",
+                          prefixIcon: const Icon(Icons.work, color: MyColors.primaryColor),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: MyColors.primaryColor, width: 2)),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -235,15 +317,13 @@ class _ProfileCreateViewState extends State<ProfileCreateView> {
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: _saveProfile,
+                onPressed: _handleFormSubmission,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: MyColors.primaryColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 child: Text(
-                  widget.existingProfile == null ? "Créer Profil" : "Valider",
+                  isEditing ? "Valider les modifications" : (widget.isLoginMode ? MyString.loginTitle : "S'inscrire et Créer Profil"),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -254,7 +334,7 @@ class _ProfileCreateViewState extends State<ProfileCreateView> {
             ),
             const SizedBox(height: 10),
             
-            // Bouton Annuler
+            // Bouton Annuler/Retour
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: const Text("Annuler"),
