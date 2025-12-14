@@ -16,12 +16,12 @@ import '../models/user_profile.dart';
 import '../models/work_session.dart';
 import '../models/user_auth.dart';
 import '../utils/colors.dart'; 
-import '../view/home/home_view.dart';
+import '../utils/constanst.dart'; 
 import '../view/auth/login_view.dart';
 import '../view/main_wrapper.dart'; 
 
 Future<void> main() async {
-  // 👈 CORRECTION 1: Initialisation des bindings avant Hive
+  // 👈 Initialisation des bindings avant Hive
   WidgetsFlutterBinding.ensureInitialized();
   
   /// Initial Hive DB
@@ -35,27 +35,32 @@ Future<void> main() async {
   Hive.registerAdapter<UserAuth>(UserAuthAdapter());
 
   /// Open boxes
-  // Utilisation des noms de boîte définis dans HiveDataStore pour plus de clarté
-  final taskBox = await Hive.openBox<Task>(HiveDataStore.boxName); 
-  final profileBox = await Hive.openBox<UserProfile>("userProfileBox"); 
-  final sessionBox = await Hive.openBox<WorkSession>("workSessionsBox");
-  final authBox = await Hive.openBox<UserAuth>("userAuthBox"); 
+  // Utilisation des noms de boîte définis dans HiveDataStore/Constants
+  final taskBox = await Hive.openBox<Task>(Constants.taskBox); 
+  final profileBox = await Hive.openBox<UserProfile>(Constants.userProfileBox); 
+  final sessionBox = await Hive.openBox<WorkSession>(Constants.sessionBox);
+  final authBox = await Hive.openBox<UserAuth>(Constants.userAuthBox);
 
-  // 👈 CORRECTION 2: Création de l'instance HiveDataStore avec les 4 boxes
+  // Création de l'instance HiveDataStore avec les 4 boxes
   final HiveDataStore dataStore = HiveDataStore(taskBox, sessionBox, profileBox, authBox);
 
-  // ... (Logique de suppression des anciennes tâches - inchangée)
+  // 🎯 MODIFICATION POUR FORCER LA DÉCONNEXION AU DÉMARRAGE
+  for (var user in authBox.values) {
+    if (user.isLoggedIn) {
+      user.isLoggedIn = false;
+      await user.save();
+    }
+  }
 
-  // 👈 CORRECTION 3: Passer l'instance dataStore à BaseWidget
+  // Passer l'instance dataStore à BaseWidget
   runApp(BaseWidget(dataStore: dataStore, child: const MyApp()));
 }
 
+// 🎯 CLASSE BASEWIDGET (InheritedWidget)
 class BaseWidget extends InheritedWidget {
-  // 👈 CORRECTION 4: Définir dataStore comme une propriété requise et non auto-instanciée
   final HiveDataStore dataStore; 
   final Widget child;
 
-  // 👈 CORRECTION 5: Mettre à jour le constructeur pour accepter le dataStore
   BaseWidget({
     Key? key, 
     required this.dataStore,
@@ -76,6 +81,7 @@ class BaseWidget extends InheritedWidget {
     return oldWidget.dataStore != dataStore; 
   }
 }
+// FIN DE BASEWIDGET
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
@@ -83,6 +89,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final base = BaseWidget.of(context);
+    final profileBox = Hive.box<UserProfile>(Constants.userProfileBox);
 
     // Écoute les changements de la boîte pour réagir aux mises à jour de profil (thème)
     return ValueListenableBuilder<Box<UserProfile>>(
@@ -91,9 +98,13 @@ class MyApp extends StatelessWidget {
 
         // Lecture du profil via la méthode DataStore (robuste pour l'utilisateur connecté)
         final UserProfile? loggedInProfile = base.dataStore.getLoggedInUserProfile();
-        final UserProfile profile = loggedInProfile ?? UserProfile.defaultProfile();
         
-        // Détermination du ThemeMode (0=Clair, 1=Sombre, nous excluons le mode Système pour le moment)
+        // ✅ CORRECTION RangeError : Ne lit l'index 0 que si la boîte n'est pas vide
+        final UserProfile? guestProfile = profileBox.isEmpty ? null : profileBox.getAt(0);
+
+        final UserProfile profile = loggedInProfile ?? guestProfile ?? UserProfile.defaultProfile();
+        
+        // Détermination du ThemeMode (0=Clair, 1=Sombre)
         ThemeMode currentThemeMode = profile.themeMode == 1 ? ThemeMode.dark : ThemeMode.light;
 
         return MaterialApp(
@@ -159,8 +170,19 @@ class MyApp extends StatelessWidget {
               ),
             ),
           ),
-
-          home: const MainWrapper(), 
+          
+          // Utilisez les routes nommées pour une gestion plus propre
+          initialRoute: '/',
+          routes: {
+            // Cette logique vérifie l'état après le nettoyage de main()
+            '/': (context) {
+              final authBox = Hive.box<UserAuth>(Constants.userAuthBox);
+              // Devrait toujours être faux après le nettoyage dans main()
+              final isLoggedIn = authBox.values.any((user) => user.isLoggedIn == true);
+              return isLoggedIn ? const MainWrapper() : const LoginView();
+            },
+            // Vous pouvez ajouter d'autres routes ici si nécessaire
+          },
         );
       },
     );

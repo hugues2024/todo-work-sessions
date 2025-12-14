@@ -172,6 +172,7 @@ class FABSession extends StatelessWidget {
   Widget build(BuildContext context) {
     return FloatingActionButton.extended(
       backgroundColor: MyColors.primaryColor,
+      heroTag: 'session_fab',
       onPressed: () {
         // CORRECTION : Navigation vers la vue de création de session
         Navigator.of(context).push(

@@ -1,4 +1,4 @@
-// lib/data/hive_data_store.dart
+// lib/data/hive_data_store.dart - CODE COMPLET CORRIGÉ
 
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -14,13 +14,14 @@ class HiveDataStore {
   static const boxName = "tasksBox";
 
   // Définitions des Boxes
-  final Box<Task> box; // Box Task
+  final Box<Task> taskBox; // ✅ CHANGEMENT : Renommé 'box' en 'taskBox'
   final Box<WorkSession> sessionBox; // Box WorkSession
   final Box<UserProfile> profileBox; // Box UserProfile
   final Box<UserAuth> authBox; // Box UserAuth
 
   // Le constructeur DOIT accepter les 4 Box en arguments
-  HiveDataStore(this.box, this.sessionBox, this.profileBox, this.authBox);
+  // ✅ CHANGEMENT : Le constructeur utilise maintenant this.taskBox
+  HiveDataStore(this.taskBox, this.sessionBox, this.profileBox, this.authBox);
 
   // =========================================================================
   // 🎯 GESTION DES TÂCHES (CRUD)
@@ -28,12 +29,12 @@ class HiveDataStore {
 
   /// Add new Task
   Future<void> addTask({required Task task}) async {
-    await box.put(task.id, task);
+    await taskBox.put(task.id, task); // ✅ CHANGEMENT : Utilise 'taskBox'
   }
 
   /// Show task
   Future<Task?> getTask({required String id}) async {
-    return box.get(id);
+    return taskBox.get(id); // ✅ CHANGEMENT : Utilise 'taskBox'
   }
 
   /// Update task
@@ -47,7 +48,7 @@ class HiveDataStore {
   }
 
   ValueListenable<Box<Task>> listenToTask() {
-    return box.listenable();
+    return taskBox.listenable(); // ✅ CHANGEMENT : Utilise 'taskBox'
   }
   
   // =========================================================================

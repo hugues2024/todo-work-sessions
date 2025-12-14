@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:animate_do/animate_do.dart';
 import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb; // 👈 Ajouté pour la compatibilité Web
+import 'package:flutter/foundation.dart' show kIsWeb; 
 
 ///
 import '../../main.dart';
@@ -13,11 +13,15 @@ import '../../models/user_profile.dart';
 import '../../models/user_auth.dart'; 
 import '../../utils/colors.dart';
 import '../../utils/constanst.dart'; 
-import 'profile_create_view.dart'; 
+import '../auth/login_view.dart'; // NOUVEAU: Import de LoginView
+import '../auth/register_view.dart'; // NOUVEAU: Import de RegisterView
+import 'profile_create_view.dart'; // Gardé pour l'édition de profil
+
 
 class ProfileView extends StatelessWidget {
   const ProfileView({super.key});
 
+  final String defaultProfileImage = 'assets/img/default_profile.png'; // Assurez-vous d'avoir cette image
 
   /// 🎯 NOUVEAU : Fonction pour gérer l'image sur Mobile et Web
   ImageProvider<Object> _getProfileImageProvider(String? imagePath) {
@@ -42,7 +46,6 @@ class ProfileView extends StatelessWidget {
 
   /// Contenu affiché si l'utilisateur EST connecté et a un profil
   Widget _buildProfileContent(BuildContext context, UserAuth auth, UserProfile profile) {
-    final base = BaseWidget.of(context);
     final textTheme = Theme.of(context).textTheme;
     final ImageProvider<Object> profileImage = _getProfileImageProvider(profile.imagePath);
     final bool isDefaultIcon = profileImage is AssetImage;
@@ -179,8 +182,12 @@ class ProfileView extends StatelessWidget {
               onPressed: () async {
                 Navigator.of(context).pop(); // Ferme le dialogue
                 await base.dataStore.logout(); 
-                // 🎯 CORRECTION : Après logout, on navigue vers la racine pour forcer le MainWrapper à reconstruire
-                Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+                
+                // 🎯 CORRECTION DÉCONNEXION: Navigue vers LoginView avec canPop: true (pour la croix)
+                Navigator.of(context).pushAndRemoveUntil(
+                   CupertinoPageRoute(builder: (context) => const LoginView(canPop: true)),
+                   (route) => false,
+                );
               },
             ),
           ],
@@ -211,15 +218,17 @@ class ProfileView extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 40),
+            
+            // Bouton S'inscrire
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton.icon(
                 onPressed: () {
-                  // Navigue vers la vue de création de profil en mode INSCRIPTION
+                  // 🎯 CORRECTION: Navigue vers RegisterView avec canPop: false (pour la flèche de retour)
                   Navigator.of(context).push(
                     CupertinoPageRoute(
-                      builder: (context) => const ProfileCreateView(isLoginMode: false), 
+                      builder: (context) => const RegisterView(canPop: false), 
                     ),
                   );
                 },
@@ -238,15 +247,15 @@ class ProfileView extends StatelessWidget {
             // Bouton de connexion
             TextButton(
               onPressed: () {
-                 // Navigue vers la vue de création de profil en mode CONNEXION
+                 // 🎯 CORRECTION: Navigue vers LoginView avec canPop: false (pour la flèche de retour)
                  Navigator.of(context).push(
                     CupertinoPageRoute(
-                      builder: (context) => const ProfileCreateView(isLoginMode: true), 
+                      builder: (context) => const LoginView(canPop: false), 
                     ),
                   );
               },
               child: const Text(
-                "J'ai déjà un compte",
+                "J'ai déjà un compte (Se connecter)",
                 style: TextStyle(color: MyColors.primaryColor, decoration: TextDecoration.underline),
               ),
             ),
@@ -273,7 +282,7 @@ class ProfileView extends StatelessWidget {
             backgroundColor: MyColors.primaryColor,
             elevation: 0,
             title: const Text("Mon Profil", style: TextStyle(color: Colors.white)),
-            // ❌ SUPPRIMÉ : Bouton de retour retiré
+            
             actions: isLoggedIn && base.dataStore.getLoggedInUserProfile() != null ? [
               IconButton(
                 icon: const Icon(Icons.edit, color: Colors.white),
@@ -305,7 +314,7 @@ class ProfileView extends StatelessWidget {
 
                 // Si l'utilisateur est techniquement connecté mais le profil n'est pas encore créé
                 if (userProfile == null) {
-                  // Renvoie à l'écran de demande de connexion/inscription pour créer le profil
+                  // Renvoie à l'écran de demande de connexion/inscription
                   return _buildLoginRequiredContent(context); 
                 }
 

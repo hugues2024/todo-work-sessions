@@ -58,7 +58,7 @@ dynamic deleteAllTask(BuildContext context) {
       Navigator.pop(context);
     },
     onTapConfirm: () {
-      BaseWidget.of(context).dataStore.box.clear();
+      BaseWidget.of(context).dataStore.taskBox.clear();
       Navigator.pop(context);
     },
     panaraDialogType: PanaraDialogType.error,
@@ -66,6 +66,15 @@ dynamic deleteAllTask(BuildContext context) {
   );
 }
 
+// --- NOUVELLE CLASSE POUR LES CONSTANTES GLOBALES ---
+abstract class Constants {
+  static const String taskBox = 'tasksbox';
+  static const String sessionBox = 'workSessionsBox';
+  static const String userProfileBox = 'userProfileBox';
+  static const String userAuthBox = 'userAuthBox';
+}
+
 /// lottie asset address
 String lottieURL = 'assets/lottie/1.json';
 const String defaultProfileImage = 'assets/images/default_profile.png';
+

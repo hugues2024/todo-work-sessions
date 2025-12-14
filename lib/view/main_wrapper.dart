@@ -11,33 +11,43 @@ import 'settings/settings_view.dart';
 import 'details/details_view.dart';
 
 class MainWrapper extends StatefulWidget {
-  const MainWrapper({super.key});
+  // ✅ CORRECTION 1: Ajout du paramètre initialIndex
+  final int initialIndex;
+  
+  const MainWrapper({
+    super.key,
+    this.initialIndex = 0, // Valeur par défaut : Accueil (0)
+  });
 
   @override
   State<MainWrapper> createState() => _MainWrapperState();
 }
 
 class _MainWrapperState extends State<MainWrapper> {
-  int _currentIndex = 0; // Index de la vue actuellement sélectionnée
+  // ✅ CORRECTION 2: Définir _currentIndex dans initState pour utiliser initialIndex
+  late int _currentIndex; 
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+  }
 
   // Liste des vues à afficher dans le BottomNavigationBar
   final List<Widget> _views = const [
     HomeView(),          // 0: Accueil (Tâches)
     WorkSessionView(),   // 1: Session de travail
-    ProfileView(),       // 2: Profil
+    ProfileView(),       // 2: Profil <-- C'est l'index que nous voulons
     SettingsView(),      // 3: Paramètres
     DetailsView(),       // 4: Détails
   ];
 
   @override
   Widget build(BuildContext context) {
-    // La couleur primaire est utilisée ici pour le sélecteur, 
-    // en fonction du thème (light/dark) pour garder la cohérence du projet
-    final Color selectedColor = Theme.of(context).primaryColor; 
+    // ... (Reste du code inchangé)
 
     return Scaffold(
       // Utilisation d'un IndexedStack pour ne pas reconstruire les vues à chaque changement d'onglet
-      // (Maintient l'état de chaque écran, par exemple la position de défilement)
       body: IndexedStack(
         index: _currentIndex,
         children: _views,
@@ -53,9 +63,9 @@ class _MainWrapperState extends State<MainWrapper> {
         },
         // Utilisez 'fixed' si vous avez plus de 3 éléments pour que les labels restent visibles
         type: BottomNavigationBarType.fixed, 
-        selectedItemColor: selectedColor,
+        selectedItemColor: Theme.of(context).primaryColor, // Utiliser le thème
         unselectedItemColor: Colors.grey, 
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor, // Respecte le mode sombre
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor, 
         items: const [
           BottomNavigationBarItem(
             icon: Icon(CupertinoIcons.house_fill),

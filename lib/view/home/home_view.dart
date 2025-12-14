@@ -301,6 +301,7 @@ class FAB extends StatelessWidget {
   Widget build(BuildContext context) {
     return FloatingActionButton(
       backgroundColor: MyColors.primaryColor,
+      heroTag: 'home_fab',
       onPressed: () {
         // Appelle la vue de création/édition de tâche sans arguments pour le mode création
         Navigator.of(context).push(
