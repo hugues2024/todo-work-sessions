@@ -1,12 +1,15 @@
 // lib/view/auth/register_view.dart - CODE COMPLET CORRIGÉ
 
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:animate_do/animate_do.dart';
 
 ///
 import '../../main.dart';
 import '../../models/user_auth.dart';
 import '../../utils/colors.dart';
+import 'login_view.dart';
+
 
 class RegisterView extends StatefulWidget {
   // Ajout d'un booléen pour savoir si l'utilisateur peut fermer la vue
@@ -60,11 +63,15 @@ class _RegisterViewState extends State<RegisterView> {
       return;
     }
 
+    // Assurer que le contexte est toujours valide (synchronous call to dataStore)
+    if (!mounted) return;
     final dataStore = BaseWidget.of(context).dataStore;
     
     // Utilisation de la fonction signupUser de HiveDataStore
     final success = await dataStore.signupUser(email, password);
 
+    if (!mounted) return;
+    
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Compte créé avec succès !')),
@@ -260,6 +267,25 @@ class _RegisterViewState extends State<RegisterView> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                    ),
+                  ),
+                ),
+
+                // Lien Connexion (CORRIGÉ)
+                FadeInUp(
+                  delay: const Duration(milliseconds: 700),
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        // Transmet le canPop pour que l'écran de connexion puisse aussi être fermé
+                        CupertinoPageRoute(
+                          builder: (context) => LoginView(canPop: widget.canPop),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      "Déjà de compte ? Se connecter",
+                      style: TextStyle(color: MyColors.primaryColor),
                     ),
                   ),
                 ),

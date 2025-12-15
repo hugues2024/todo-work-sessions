@@ -1,3 +1,4 @@
+// lib/models/task.dart
 
 import 'package:uuid/uuid.dart';
 import 'package:hive/hive.dart';
@@ -14,6 +15,9 @@ class Task extends HiveObject {
     required this.createdAtTime,
     required this.createdAtDate,
     required this.isCompleted,
+    required this.startDate,
+    required this.endDate,
+    this.isOngoing = false,
     List<TaskStep>? steps,
   }) : steps = steps ?? [];
 
@@ -44,6 +48,15 @@ class Task extends HiveObject {
   /// STEPS (étapes de réalisation)
   @HiveField(6)
   List<TaskStep> steps;
+
+  @HiveField(7)
+  DateTime? startDate; // NOUVEAU: Date et heure de début
+  
+  @HiveField(8)
+  DateTime? endDate;   // NOUVEAU: Date et heure de fin (échéance)
+  
+  @HiveField(9)
+  bool isOngoing;      // NOUVEAU: Tâche en cours (pour le chronomètre)
 
   /// Calculer le pourcentage de completion basé sur les étapes
   double get completionPercentage {
@@ -134,7 +147,9 @@ class Task extends HiveObject {
     required String? subtitle,
     DateTime? createdAtTime,
     DateTime? createdAtDate,
-    List<TaskStep>? steps,
+    List<TaskStep> steps = const [],
+    DateTime? startDate,
+    DateTime? endDate,
   }) {
     final task = Task(
       id: const Uuid().v1(),
@@ -144,6 +159,8 @@ class Task extends HiveObject {
       isCompleted: false,
       createdAtDate: createdAtDate ?? DateTime.now(),
       steps: steps ?? [],
+      startDate: startDate,
+      endDate: endDate,
     );
     
     // Mettre à jour la date/heure si des étapes existent

@@ -6,13 +6,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_datetime_picker_plus/flutter_datetime_picker_plus.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:uuid/uuid.dart'; 
 
 ///
 import '../../main.dart';
+import '../../models/task.dart'; 
 import '../../models/work_session.dart';
 import '../../utils/colors.dart';
 import '../../utils/constanst.dart';
 import '../../utils/strings.dart';
+// Import du nouveau WorkSessionView (qui est maintenant le Minuteur)
+import 'work_session_view.dart'; 
 
 // ignore: must_be_immutable
 class SessionCreationView extends StatefulWidget {
@@ -52,35 +56,53 @@ class _SessionCreationViewState extends State<SessionCreationView> {
     super.dispose();
   }
 
-  // Fonction pour créer et enregistrer la session
+  // Fonction pour créer la session (maintenant une Task temporaire) et démarrer le minuteur
   Future<void> _createWorkSession() async {
     if (_formKey.currentState!.validate()) {
-      final base = BaseWidget.of(context);
-
       final String title = titleController.text;
       final String description = descriptionController.text.isEmpty ? 'Aucune description' : descriptionController.text;
-      final int workDuration = int.tryParse(workDurationController.text) ?? 25;
-      final int breakDuration = int.tryParse(breakDurationController.text) ?? 5;
+      // Ces variables ne sont pas utilisées dans la Task mais sont gardées pour l'intention Pomodoro
+      // final int workDuration = int.tryParse(workDurationController.text) ?? 25; 
+      // final int breakDuration = int.tryParse(breakDurationController.text) ?? 5;
+      
+      final now = DateTime.now();
+      final scheduledDate = scheduledStart ?? now;
 
-      // Création de la nouvelle session
-      final newSession = WorkSession.create(
+      // 🎯 CRÉATION D'UNE TÂCHE TEMPORAIRE (pour le minuteur)
+      final tempTask = Task(
+        id: const Uuid().v4(), // Génère un ID unique pour la Task
         title: title,
-        description: description,
-        workDurationMinutes: workDuration,
-        breakDurationMinutes: breakDuration,
+        subtitle: description, 
+        
+        // ✅ CORRECTION : Tous les paramètres requis du constructeur Task sont passés
+        createdAtDate: now, 
+        createdAtTime: now, 
+        startDate: scheduledDate,
+        endDate: null, // <-- CORRECTION APPLIQUÉE : Passé explicitement à null car requis mais non encore connu
+        
+        // Valeurs par défaut
+        isCompleted: false, 
+        isOngoing: true, // On la marque comme en cours immédiatement avant de naviguer
+        steps: [],
       );
 
-      // Enregistrement dans Hive
-      await base.dataStore.addSession(session: newSession);
-
-      // Afficher un message de succès et naviguer en arrière
+      // Afficher un message de succès
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Session "$title" créée avec succès !'),
+          content: Text('Préparation de la session "$title"... Démarrage du minuteur.'),
           duration: const Duration(seconds: 2),
         ),
       );
-      Navigator.pop(context);
+      
+      // 1. Fermer la vue de création (pop)
+      Navigator.pop(context); 
+      
+      // 2. Naviguer vers la vue du minuteur (WorkSessionView) en lui passant la Task
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => WorkSessionView(task: tempTask), // Passe la Task à la vue du Minuteur
+        ),
+      );
     }
   }
 

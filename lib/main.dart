@@ -1,4 +1,4 @@
-// lib/main.dart
+// lib/main.dart (Code Complet et Corrigé)
 
 //? CodeWithFlexz on Instagram
 //* AmirBayat0 on Github
@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hive/hive.dart';
+import 'package:provider/provider.dart'; 
 
 ///
 import '../data/hive_data_store.dart';
@@ -19,6 +20,9 @@ import '../utils/colors.dart';
 import '../utils/constanst.dart'; 
 import '../view/auth/login_view.dart';
 import '../view/main_wrapper.dart'; 
+import '../view/clock/clock_wrapper.dart'; // 🎯 Importation de ClockWrapper (qui sera la vue complète de l'horloge)
+import '../view/calendar/calendar_agenda_view.dart'; // 🎯 NOUVEAU: Importation pour la route /calendar
+import '../services/timer_service.dart'; 
 
 Future<void> main() async {
   // 👈 Initialisation des bindings avant Hive
@@ -35,7 +39,6 @@ Future<void> main() async {
   Hive.registerAdapter<UserAuth>(UserAuthAdapter());
 
   /// Open boxes
-  // Utilisation des noms de boîte définis dans HiveDataStore/Constants
   final taskBox = await Hive.openBox<Task>(Constants.taskBox); 
   final profileBox = await Hive.openBox<UserProfile>(Constants.userProfileBox); 
   final sessionBox = await Hive.openBox<WorkSession>(Constants.sessionBox);
@@ -44,16 +47,16 @@ Future<void> main() async {
   // Création de l'instance HiveDataStore avec les 4 boxes
   final HiveDataStore dataStore = HiveDataStore(taskBox, sessionBox, profileBox, authBox);
 
-  // 🎯 MODIFICATION POUR FORCER LA DÉCONNEXION AU DÉMARRAGE
-  for (var user in authBox.values) {
-    if (user.isLoggedIn) {
-      user.isLoggedIn = false;
-      await user.save();
-    }
-  }
-
   // Passer l'instance dataStore à BaseWidget
-  runApp(BaseWidget(dataStore: dataStore, child: const MyApp()));
+  runApp(
+    BaseWidget(
+      dataStore: dataStore, 
+      child: ChangeNotifierProvider(
+        create: (context) => TimerService(),
+        child: const MyApp(),
+      ),
+    )
+  );
 }
 
 // 🎯 CLASSE BASEWIDGET (InheritedWidget)
@@ -96,12 +99,8 @@ class MyApp extends StatelessWidget {
       valueListenable: base.dataStore.listenToUserProfile(),
       builder: (context, box, child) {
 
-        // Lecture du profil via la méthode DataStore (robuste pour l'utilisateur connecté)
         final UserProfile? loggedInProfile = base.dataStore.getLoggedInUserProfile();
-        
-        // ✅ CORRECTION RangeError : Ne lit l'index 0 que si la boîte n'est pas vide
         final UserProfile? guestProfile = profileBox.isEmpty ? null : profileBox.getAt(0);
-
         final UserProfile profile = loggedInProfile ?? guestProfile ?? UserProfile.defaultProfile();
         
         // Détermination du ThemeMode (0=Clair, 1=Sombre)
@@ -134,7 +133,6 @@ class MyApp extends StatelessWidget {
                 color: Colors.white,
                 fontSize: 21,
               ),
-              // ... autres styles...
             ),
           ),
 
@@ -174,14 +172,19 @@ class MyApp extends StatelessWidget {
           // Utilisez les routes nommées pour une gestion plus propre
           initialRoute: '/',
           routes: {
-            // Cette logique vérifie l'état après le nettoyage de main()
+            // Renvoie le MainWrapper (avec la barre de navigation principale)
             '/': (context) {
-              final authBox = Hive.box<UserAuth>(Constants.userAuthBox);
-              // Devrait toujours être faux après le nettoyage dans main()
-              final isLoggedIn = authBox.values.any((user) => user.isLoggedIn == true);
-              return isLoggedIn ? const MainWrapper() : const LoginView();
+              return const MainWrapper();
             },
-            // Vous pouvez ajouter d'autres routes ici si nécessaire
+            // 🎯 ROUTE PLEIN ÉCRAN : Horloge (pas de MainWrapper)
+            '/clock': (context) {
+              // NOTE: Si vous avez renommé ClockWrapper en ClockView, utilisez ClockView()
+              return const ClockWrapper(); 
+            },
+            // 🎯 ROUTE PLEIN ÉCRAN : Calendrier (pas de MainWrapper)
+            '/calendar': (context) {
+              return const CalendarAgendaView();
+            },
           },
         );
       },

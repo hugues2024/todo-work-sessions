@@ -37,10 +37,11 @@ class HiveDataStore {
     return taskBox.get(id); // ✅ CHANGEMENT : Utilise 'taskBox'
   }
 
-  /// Update task
-  Future<void> updateTask({required Task task}) async {
-    await task.save();
-  }
+/// Update task
+Future<void> updateTask({required Task task}) async {
+  // task.save() enregistre toutes les modifications, y compris les nouveaux champs.
+  await task.save(); 
+}
 
   /// Delete task
   Future<void> deleteTask({required Task task}) async {

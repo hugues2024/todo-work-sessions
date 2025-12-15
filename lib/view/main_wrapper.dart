@@ -5,18 +5,16 @@ import 'package:flutter/cupertino.dart';
 
 // Importez toutes les vues principales :
 import 'home/home_view.dart';
-import 'work_session/work_session_view.dart';
 import 'profile/profile_view.dart';
 import 'settings/settings_view.dart';
 import 'details/details_view.dart';
 
 class MainWrapper extends StatefulWidget {
-  // ✅ CORRECTION 1: Ajout du paramètre initialIndex
   final int initialIndex;
   
   const MainWrapper({
     super.key,
-    this.initialIndex = 0, // Valeur par défaut : Accueil (0)
+    this.initialIndex = 0, 
   });
 
   @override
@@ -24,28 +22,26 @@ class MainWrapper extends StatefulWidget {
 }
 
 class _MainWrapperState extends State<MainWrapper> {
-  // ✅ CORRECTION 2: Définir _currentIndex dans initState pour utiliser initialIndex
+  // 🎯 L'index est initialisé à l'index initial (par défaut 0)
   late int _currentIndex; 
 
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.initialIndex;
+    _currentIndex = widget.initialIndex.clamp(0, 4);
   }
 
-  // Liste des vues à afficher dans le BottomNavigationBar
+  // Les 5 vues pour les 5 onglets de la barre inférieure principale
   final List<Widget> _views = const [
-    HomeView(),          // 0: Accueil (Tâches)
-    WorkSessionView(),   // 1: Session de travail
-    ProfileView(),       // 2: Profil <-- C'est l'index que nous voulons
+    HomeView(),          // 0: Accueil (Contient Tâches, et lance Horloge/Calendrier en plein écran)
+    HomeView(),          // 1: Sessions (Pointe également sur HomeView)
+    ProfileView(),       // 2: Profil
     SettingsView(),      // 3: Paramètres
     DetailsView(),       // 4: Détails
   ];
 
   @override
   Widget build(BuildContext context) {
-    // ... (Reste du code inchangé)
-
     return Scaffold(
       // Utilisation d'un IndexedStack pour ne pas reconstruire les vues à chaque changement d'onglet
       body: IndexedStack(
@@ -53,7 +49,7 @@ class _MainWrapperState extends State<MainWrapper> {
         children: _views,
       ),
 
-      // La Barre de Navigation Inférieure
+      // La Barre de Navigation Inférieure (Main Wrapper)
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
@@ -61,9 +57,8 @@ class _MainWrapperState extends State<MainWrapper> {
             _currentIndex = index;
           });
         },
-        // Utilisez 'fixed' si vous avez plus de 3 éléments pour que les labels restent visibles
         type: BottomNavigationBarType.fixed, 
-        selectedItemColor: Theme.of(context).primaryColor, // Utiliser le thème
+        selectedItemColor: Theme.of(context).primaryColor, 
         unselectedItemColor: Colors.grey, 
         backgroundColor: Theme.of(context).scaffoldBackgroundColor, 
         items: const [

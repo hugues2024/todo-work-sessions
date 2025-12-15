@@ -68,10 +68,10 @@ dynamic deleteAllTask(BuildContext context) {
 
 // --- NOUVELLE CLASSE POUR LES CONSTANTES GLOBALES ---
 abstract class Constants {
-  static const String taskBox = 'tasksbox';
-  static const String sessionBox = 'workSessionsBox';
-  static const String userProfileBox = 'userProfileBox';
-  static const String userAuthBox = 'userAuthBox';
+  static const String taskBox = 'tasks';
+  static const String userProfileBox = 'userProfiles';
+  static const String sessionBox = 'workSessions';
+  static const String userAuthBox = 'userAuth';
 }
 
 /// lottie asset address

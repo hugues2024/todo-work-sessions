@@ -1,9 +1,10 @@
+//lib/utils/strings.dart
 class MyString {
   static const String mainTitle = "Mes Tâches";
   static const String deletedTask = "Cette tâche a été supprimée";
   static const String doneAllTask = "Vous avez terminé toutes les tâches !👌";
   static const String addNewTask = "Ajouter une nouvelle ";
-  static const String updateCurrentTask = "Mettre à jour la ";
+  static const String updateCurrentTask = "Modifier tâche";
   static const String taskStrnig = "Tâche";
   static const String titleOfTitleTextField = "Qu'avez-vous prévu aujourd'hui 😇?";
   static const String addNote = 'Ajouter une note';
@@ -11,7 +12,7 @@ class MyString {
   static const String dateString = "Date";
   static const String deleteTask = "Supprimer la Tâche";
   static const String addTaskString = "Ajouter la Tâche";
-  static const String updateTaskString = "Mettre à jour la Tâche";
+  static const String updateTaskString = "Modifier la Tâche";
   static const String oopsMsg = "Oups !";
   static const String areYouSure = "Êtes-vous sûr(e) ?";
   // --- NOUVELLES STRINGS POUR WORK SESSION ---
@@ -55,4 +56,32 @@ class MyString {
   static const String authError = "Erreur d'authentification. Veuillez vérifier vos informations.";
   static const String loginFailed = "Connexion échouée : Email ou mot de passe incorrect.";
   static const String signupFailed = "Inscription échouée : Cet email est déjà utilisé.";
+
+  // NOUVEAUX STRINGS POUR TASK_VIEW
+  static const String startDate = 'Date de début';
+  static const String endDate = 'Date de fin';
+  static const String successMessage = 'Tâche enregistrée avec succès !';
+  static const String editTab = 'Modifier';
+  static const String sessionTab = 'Chronomètre';
+  static const String startSession = 'Démarrer la Session';
+  static const String stopSession = 'Arrêter la Session';
+  static const String viewTask = 'Voir la tâche';
+  
+  // NOUVEAUX STRINGS POUR HOME_VIEW
+  static const String tasksTab = 'Tâches';
+  static const String timeMenu = 'Horloge';
+  static const String calendarMenu = 'Calendrier';
+
+  // NOUVEAUX STRINGS POUR TASK_VIEW
+  static const String taskTitleHint = "Ex: Préparer la présentation pour 14h"; // Nouvelle suggestion de hint
+
+  // ===================================
+  // NOUVELLES VARIABLES POUR LE CHRONOMÈTRE
+  // ===================================
+  
+  // Utilisé dans TaskSessionSection.dart pour les boutons
+  static const String continueSession = 'Continuer';
+  static const String resetTask = 'Réinitialiser'; // Utilisé comme alternative à Stopper si le temps est enregistré mais en pause
+
+  static const String timerTitle = 'Minuteur de Tâche'; // NOUVEAU
 }

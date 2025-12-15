@@ -233,7 +233,7 @@ class ProfileView extends StatelessWidget {
                   );
                 },
                 icon: const Icon(Icons.person_add_alt_1, color: Colors.white),
-                label: const Text("Créer un Compte / S'inscrire", style: TextStyle(fontSize: 18, color: Colors.white)),
+                label: const Text("Créer un Compte", style: TextStyle(fontSize: 18, color: Colors.white)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: MyColors.primaryColor,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -255,7 +255,7 @@ class ProfileView extends StatelessWidget {
                   );
               },
               child: const Text(
-                "J'ai déjà un compte (Se connecter)",
+                "J'ai déjà un compte",
                 style: TextStyle(color: MyColors.primaryColor, decoration: TextDecoration.underline),
               ),
             ),

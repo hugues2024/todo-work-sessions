@@ -1,21 +1,15 @@
-// lib/view/home/home_view.dart
+// lib/view/home/home_view.dart (Code Corrigé pour la couleur des icônes)
 
 // ignore_for_file: must_be_immutable, use_build_context_synchronously
 
-import 'package:animate_do/animate_do.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/adapters.dart';
-import 'package:lottie/lottie.dart';
-
-///
-import '../../main.dart';
-import '../../models/task.dart';
-import '../../utils/colors.dart';
-import '../../utils/constanst.dart';
 import '../../utils/strings.dart';
-import '../../view/home/widgets/task_widget.dart';
-import '../../view/tasks/task_view.dart';
+import '../../utils/colors.dart';
+
+/// Import des sous-vues
+import 'widgets/task_list_view.dart'; 
+// ClockView et CalendarAgendaView sont retirés car nous naviguons vers leur route complète.
 
 
 class HomeView extends StatefulWidget {
@@ -26,291 +20,133 @@ class HomeView extends StatefulWidget {
   _HomeViewState createState() => _HomeViewState();
 }
 
-class _HomeViewState extends State<HomeView> {
-  // REMOVED: GlobalKey<SliderDrawerState> dKey (plus nécessaire avec AppBar simple)
 
-  /// Checking Done Tasks
-  int checkDoneTask(List<Task> task) {
-    int i = 0;
-    for (Task doneTasks in task) {
-      if (doneTasks.isCompleted) {
-        i++;
-      }
-    }
-    return i;
+class _HomeViewState extends State<HomeView> {
+  // L'index 0 est pour Tâches. Les autres indices dans l'AppBar déclenchent la navigation.
+  // 0: Tâches, 1: Horloge, 2: Calendrier
+  int _currentIndex = 0; 
+  
+  // Liste des vues pour le corps du Scaffold (Seule TaskListView est gérée ici)
+  final List<Widget> _views = const [
+    TaskListView(),
+    // Placeholders pour les autres vues (qui sont maintenant gérées par navigation)
+    Center(child: Text("Accès Horloge...")),
+    Center(child: Text("Accès Calendrier...")),
+  ];
+
+  /// Gère le titre statique de l'AppBar pour cet écran
+  String get _currentTitle {
+    return MyString.mainTitle; 
   }
 
-  /// Checking The Value Of the Circle Indicator
-  double valueOfTheIndicator(List<Task> task) {
-    // Renvoie la taille ou 1.0 si vide pour éviter la division par zéro.
-    return task.isNotEmpty ? task.length.toDouble() : 1.0; 
+  // Fonction pour gérer le tap sur les actions de l'AppBar
+  void _onAppBarActionTapped(int index) {
+    if (index == 0) {
+      // 1. Tâches: Reste sur la TaskListView et active l'icône
+      setState(() {
+        _currentIndex = 0;
+      });
+    } else {
+      // Pour Horloge (1) et Calendrier (2): 
+      // 1. Active l'icône brièvement (setState)
+      setState(() {
+        _currentIndex = index;
+      });
+
+      // 2. Détermine la route
+      final String route = index == 1 ? '/clock' : '/calendar';
+      
+      // 3. Navigue vers la route pleine écran
+      Navigator.of(context).pushNamed(route).then((_) {
+        // Une fois revenu, on assure qu'on revient sur l'onglet Tâches (0) et grise les autres
+        setState(() {
+          _currentIndex = 0; 
+        });
+      });
+    }
+  }
+
+  // Fonction utilitaire pour la couleur des icônes
+  Color _getIconColor(int index) {
+    return _currentIndex == index 
+        ? MyColors.primaryColor 
+        : Colors.grey;
   }
 
   @override
   Widget build(BuildContext context) {
-    final base = BaseWidget.of(context);
     var textTheme = Theme.of(context).textTheme;
 
-    return ValueListenableBuilder(
-        valueListenable: base.dataStore.listenToTask(),
-        builder: (ctx, Box<Task> box, Widget? child) {
-          var tasks = box.values.toList();
-
-          /// Sort Task List: Tâches incomplètes en premier, puis par date.
-          tasks.sort((a, b) {
-            // Tâches non complétées viennent avant les complétées
-            if (a.isCompleted != b.isCompleted) {
-              return a.isCompleted ? 1 : -1;
-            }
-            // Sinon, trier par date croissante
-            return a.createdAtDate.compareTo(b.createdAtDate);
-          });
-
-          return Scaffold(
-            // S'assure que la couleur de fond respecte le thème (clair/sombre)
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-
-            /// Floating Action Button
-            floatingActionButton: const FAB(),
-
-            /// App Bar (Ajout d'une AppBar simple pour le titre)
-            appBar: AppBar(
-              title: Text(
-                MyString.mainTitle, 
-                style: textTheme.displayLarge?.copyWith(
-                  // Ajuste la taille pour une AppBar et respecte le thème
-                  fontSize: 28, 
-                  color: Theme.of(context).brightness == Brightness.dark 
-                      ? Colors.white
-                      : MyColors.primaryColor,
-                ),
+    return Scaffold(
+      
+      appBar: AppBar(
+        // Le titre aligné à gauche
+        title: Text(
+          _currentTitle, // "Mes Tâches"
+          style: textTheme.displayLarge?.copyWith(
+            fontSize: 28, 
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).brightness == Brightness.dark 
+                ? Colors.white
+                : MyColors.primaryColor,
+          ),
+        ),
+        elevation: 0,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        
+        // Les actions (icônes) alignées à droite, pour la navigation secondaire
+        actions: [
+          // 1. Icône Tâches (index 0) - Reste sur la vue TaskListView
+          Tooltip( 
+            message: MyString.tasksTab,
+            child: IconButton(
+              icon: Icon(
+                CupertinoIcons.list_bullet,
+                size: 24,
+                // 🎯 CORRIGÉ : Utilisation de la fonction pour la couleur
+                color: _getIconColor(0),
               ),
-              elevation: 0,
-              // Le fond de l'AppBar correspond au fond de l'écran
-              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-            ),
-            
-            /// Body 
-            body: _buildBody(
-                tasks,
-                base,
-                textTheme,
-              ),
-          );
-        });
-  }
-
-  /// Main Body Content
-  SizedBox _buildBody(
-    List<Task> tasks,
-    BaseWidget base,
-    TextTheme textTheme,
-  ) {
-    final double totalTasks = valueOfTheIndicator(tasks);
-    final int doneTasks = checkDoneTask(tasks);
-    final double percentage = totalTasks > 0 ? (doneTasks / totalTasks) : 0.0;
-
-    return SizedBox(
-      width: double.infinity,
-      height: double.infinity,
-      child: Column(
-        children: [
-          /// Top Section Of Home page : Header modernisé avec carte
-          FadeInDown(
-            duration: const Duration(milliseconds: 800),
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: MyColors.primaryGradientColor,
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: MyColors.primaryColor.withOpacity(0.3),
-                    blurRadius: 15,
-                    spreadRadius: -5,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  /// Grand cercle de progression
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      SizedBox(
-                        width: 70,
-                        height: 70,
-                        child: CircularProgressIndicator(
-                          valueColor: const AlwaysStoppedAnimation(Colors.white),
-                          backgroundColor: Colors.white.withOpacity(0.3),
-                          strokeWidth: 6,
-                          value: percentage, // Utilise la valeur calculée
-                        ),
-                      ),
-                      Text(
-                        '${(percentage * 100).toInt()}%',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 20),
-
-                  /// Textes avec meilleure hiérarchie
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          MyString.mainTitle, // <-- CORRECTION: Utilisation d'une string existante (mainTitle)
-                          style: textTheme.displayLarge?.copyWith(
-                            color: Colors.white,
-                            fontSize: 24,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          "${doneTasks} sur ${tasks.length} ${MyString.taskStrnig.toLowerCase()}${tasks.length > 1 ? 's' : ''}",
-                          style: textTheme.titleMedium?.copyWith(
-                            color: Colors.white.withOpacity(0.9),
-                            fontSize: 15,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  /// Badge de progression
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.check_circle, color: Colors.white, size: 16),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${doneTasks}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+              onPressed: () => _onAppBarActionTapped(0),
             ),
           ),
-
-          /// Bottom ListView : Tasks
-          Expanded(
-            child: tasks.isNotEmpty
-                ? ListView.builder(
-                    physics: const BouncingScrollPhysics(),
-                    itemCount: tasks.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      var task = tasks[index];
-
-                      return FadeInLeft(
-                        duration: const Duration(milliseconds: 500),
-                        child: Dismissible(
-                          direction: DismissDirection.horizontal,
-                          background: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                Icons.delete_outline,
-                                color: Colors.grey,
-                              ),
-                              const SizedBox(
-                                width: 8,
-                              ),
-                              Text(MyString.deletedTask,
-                                  style: const TextStyle(
-                                    color: Colors.grey,
-                                  ))
-                            ],
-                          ),
-                          onDismissed: (direction) {
-                            base.dataStore.deleteTask(task: task);
-                          },
-                          // Utilisation d'une clé unique stable
-                          key: Key(task.id), 
-                          child: TaskWidget(
-                            task: tasks[index],
-                          ),
-                        ),
-                      );
-                    },
-                  )
-
-                /// if All Tasks Done Show this Widgets
-                : Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      /// Lottie
-                      FadeIn(
-                        child: SizedBox(
-                          width: 200,
-                          height: 200,
-                          child: Lottie.asset(
-                            lottieURL,
-                            animate: true,
-                          ),
-                        ),
-                      ),
-
-                      /// Bottom Texts
-                      FadeInUp(
-                        from: 30,
-                        child: const Padding(
-                          padding: EdgeInsets.all(30.0),
-                          child: Text(
-                            MyString.doneAllTask,
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-          )
+          
+          // 2. Icône Horloge (index 1) - Navigue vers la route /clock
+          Tooltip( 
+            message: MyString.timeMenu,
+            child: IconButton(
+              icon: Icon(
+                CupertinoIcons.clock,
+                size: 24,
+                // 🎯 CORRIGÉ : Utilisation de la fonction pour la couleur
+                color: _getIconColor(1),
+              ),
+              onPressed: () => _onAppBarActionTapped(1),
+            ),
+          ),
+          
+          // 3. Icône Calendrier (index 2) - Navigue vers la route /calendar
+          Tooltip( 
+            message: MyString.calendarMenu,
+            child: IconButton(
+              icon: Icon(
+                CupertinoIcons.calendar,
+                size: 24,
+                // 🎯 CORRIGÉ : Utilisation de la fonction pour la couleur
+                color: _getIconColor(2),
+              ),
+              onPressed: () => _onAppBarActionTapped(2),
+            ),
+          ),
+          
+          const SizedBox(width: 8), 
         ],
       ),
-    );
-  }
-}
-
-/// Floating Action Button (FAB) pour ajouter une tâche
-class FAB extends StatelessWidget {
-  const FAB({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return FloatingActionButton(
-      backgroundColor: MyColors.primaryColor,
-      heroTag: 'home_fab',
-      onPressed: () {
-        // Appelle la vue de création/édition de tâche sans arguments pour le mode création
-        Navigator.of(context).push(
-          CupertinoPageRoute(
-            builder: (context) => const TaskView(), 
-          ),
-        );
-      },
-      child: const Icon(Icons.add, color: Colors.white),
+      
+      // Le corps n'affiche que le contenu de l'index 0 (TaskListView) par défaut
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _views,
+      ),
     );
   }
 }
