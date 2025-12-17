@@ -1,11 +1,74 @@
 // lib/view/clock/stopwatch_view.dart
 
+import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../utils/colors.dart';
 
-class StopwatchView extends StatelessWidget {
+class StopwatchView extends StatefulWidget {
   const StopwatchView({super.key});
+
+  @override
+  State<StopwatchView> createState() => _StopwatchViewState();
+}
+
+class _StopwatchViewState extends State<StopwatchView> {
+  final Stopwatch _stopwatch = Stopwatch();
+  late Timer _timer;
+  List<String> _laps = [];
+
+  void _update() {
+    if (_stopwatch.isRunning) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(milliseconds: 30), (timer) => _update());
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  String _formatTime(int milliseconds) {
+    int hundreds = (milliseconds / 10).truncate() % 100;
+    int seconds = (milliseconds / 1000).truncate() % 60;
+    int minutes = (milliseconds / (1000 * 60)).truncate() % 60;
+    int hours = (milliseconds / (1000 * 60 * 60)).truncate();
+
+    String hoursStr = hours > 0 ? '${hours.toString().padLeft(2, '0')}:' : '';
+    String minutesStr = minutes.toString().padLeft(2, '0');
+    String secondsStr = seconds.toString().padLeft(2, '0');
+    String hundredsStr = hundreds.toString().padLeft(2, '0');
+
+    return "$hoursStr$minutesStr:$secondsStr.$hundredsStr";
+  }
+
+  void _handleStartPause() {
+    setState(() {
+      if (_stopwatch.isRunning) {
+        _stopwatch.stop();
+      } else {
+        _stopwatch.start();
+      }
+    });
+  }
+
+  void _handleResetLap() {
+    setState(() {
+      if (_stopwatch.isRunning) {
+        _laps.insert(0, _formatTime(_stopwatch.elapsedMilliseconds));
+      } else {
+        _stopwatch.reset();
+        _laps.clear();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,68 +83,50 @@ class StopwatchView extends StatelessWidget {
         ),
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.more_vert, color: textColor),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: Column(
         children: [
-          const SizedBox(height: 100),
-          // 🎯 Affichage du temps
+          const SizedBox(height: 50),
           Center(
-            child: Column(
-              children: [
-                Text(
-                  '00:05.03', // Simulé
-                  style: TextStyle(
-                    fontSize: 70,
-                    fontWeight: FontWeight.w300,
-                    color: textColor,
-                  ),
-                ),
-                Text(
-                  '+00:05.03', // Temps du tour (Lap time)
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: textColor.withOpacity(0.6),
-                  ),
-                ),
-              ],
+            child: Text(
+              _formatTime(_stopwatch.elapsedMilliseconds),
+              style: TextStyle(
+                fontSize: 70,
+                fontWeight: FontWeight.w200,
+                color: textColor,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
             ),
           ),
-          
-          const Spacer(),
-
-          // 🎯 Boutons de contrôle (Réinitialiser, Lecture/Pause, Tour)
+          const SizedBox(height: 20),
+          Expanded(
+            child: ListView.builder(
+              itemCount: _laps.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  leading: Text('Lap ${_laps.length - index}', style: const TextStyle(color: Colors.grey)),
+                  trailing: Text(_laps[index], style: TextStyle(color: textColor, fontWeight: FontWeight.w500)),
+                );
+              },
+            ),
+          ),
           Padding(
-            padding: const EdgeInsets.only(bottom: 20.0),
+            padding: const EdgeInsets.only(bottom: 40.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                // 1. Bouton Réinitialiser (ou Tour/Lap)
                 _buildCircularButton(
-                  icon: CupertinoIcons.arrow_counterclockwise,
-                  onPressed: () {},
+                  icon: _stopwatch.isRunning ? Icons.flag : Icons.refresh,
+                  onPressed: _handleResetLap,
                   isDarkMode: isDarkMode,
-                  size: 60,
                 ),
-                // 2. Bouton Lecture/Pause
                 _buildCircularButton(
-                  icon: CupertinoIcons.play_fill,
-                  onPressed: () {},
+                  // 🎯 FIX: Utilisation de Icons.pause et Icons.play_arrow au lieu de noms incorrects
+                  icon: _stopwatch.isRunning ? Icons.pause : Icons.play_arrow,
+                  onPressed: _handleStartPause,
                   isDarkMode: isDarkMode,
                   isPrimary: true,
                   size: 80,
-                ),
-                // 3. Bouton Lap/Tour
-                _buildCircularButton(
-                  icon: CupertinoIcons.timer, // Icône de Lap Time
-                  onPressed: () {},
-                  isDarkMode: isDarkMode,
-                  size: 60,
                 ),
               ],
             ),
@@ -92,27 +137,21 @@ class StopwatchView extends StatelessWidget {
   }
 
   Widget _buildCircularButton({
-    required IconData icon, 
-    required VoidCallback onPressed, 
-    required bool isDarkMode, 
+    required IconData icon,
+    required VoidCallback onPressed,
+    required bool isDarkMode,
     bool isPrimary = false,
     double size = 60,
   }) {
-    final primaryColor = MyColors.primaryColor;
-    final bgColor = isPrimary 
-        ? primaryColor 
-        : isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200;
-    final iconColor = isPrimary ? Colors.white : (isDarkMode ? Colors.white : Colors.black);
-
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: bgColor,
+        color: isPrimary ? MyColors.primaryColor : (isDarkMode ? Colors.white10 : Colors.grey.shade200),
         shape: BoxShape.circle,
       ),
       child: IconButton(
-        icon: Icon(icon, color: iconColor, size: isPrimary ? size * 0.45 : size * 0.4),
+        icon: Icon(icon, color: isPrimary ? Colors.white : (isDarkMode ? Colors.white : Colors.black87), size: size * 0.4),
         onPressed: onPressed,
       ),
     );

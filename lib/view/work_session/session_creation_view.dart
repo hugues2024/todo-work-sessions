@@ -1,304 +1,163 @@
 // lib/view/work_session/session_creation_view.dart
 
-// ignore_for_file: prefer_typing_uninitialized_variables, use_build_context_synchronously
-
 import 'package:flutter/material.dart';
-import 'package:flutter_datetime_picker_plus/flutter_datetime_picker_plus.dart';
-import 'package:intl/intl.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:uuid/uuid.dart'; 
-
-///
-import '../../main.dart';
-import '../../models/task.dart'; 
 import '../../models/work_session.dart';
 import '../../utils/colors.dart';
-import '../../utils/constanst.dart';
-import '../../utils/strings.dart';
-// Import du nouveau WorkSessionView (qui est maintenant le Minuteur)
-import 'work_session_view.dart'; 
+import '../../main.dart';
 
-// ignore: must_be_immutable
 class SessionCreationView extends StatefulWidget {
-  // Les sessions sont toujours créées ici, donc pas besoin de paramètres d'édition
-  const SessionCreationView({Key? key}) : super(key: key);
+  final WorkSession? session; // If provided, we are editing
+
+  const SessionCreationView({super.key, this.session});
 
   @override
   State<SessionCreationView> createState() => _SessionCreationViewState();
 }
 
 class _SessionCreationViewState extends State<SessionCreationView> {
-  // Contrôleurs pour les champs de texte
-  TextEditingController titleController = TextEditingController();
-  TextEditingController descriptionController = TextEditingController();
-  TextEditingController workDurationController = TextEditingController(text: '25'); // Valeur par défaut
-  TextEditingController breakDurationController = TextEditingController(text: '5'); // Valeur par défaut
-
-  // Paramètres de session
-  DateTime? scheduledStart; // Date de début planifiée (optionnel)
-
-  // Clé pour le formulaire
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _titleController;
+  late TextEditingController _descController;
+  int _workMinutes = 25;
+  int _breakMinutes = 5;
 
   @override
   void initState() {
     super.initState();
-    // Par défaut, la session démarre maintenant.
-    scheduledStart = DateTime.now();
+    _titleController = TextEditingController(text: widget.session?.title ?? "");
+    _descController = TextEditingController(text: widget.session?.description ?? "");
+    _workMinutes = widget.session?.workDurationMinutes ?? 25;
+    _breakMinutes = widget.session?.breakDurationMinutes ?? 5;
   }
 
   @override
   void dispose() {
-    titleController.dispose();
-    descriptionController.dispose();
-    workDurationController.dispose();
-    breakDurationController.dispose();
+    _titleController.dispose();
+    _descController.dispose();
     super.dispose();
   }
 
-  // Fonction pour créer la session (maintenant une Task temporaire) et démarrer le minuteur
-  Future<void> _createWorkSession() async {
+  void _save() async {
     if (_formKey.currentState!.validate()) {
-      final String title = titleController.text;
-      final String description = descriptionController.text.isEmpty ? 'Aucune description' : descriptionController.text;
-      // Ces variables ne sont pas utilisées dans la Task mais sont gardées pour l'intention Pomodoro
-      // final int workDuration = int.tryParse(workDurationController.text) ?? 25; 
-      // final int breakDuration = int.tryParse(breakDurationController.text) ?? 5;
+      final dataStore = BaseWidget.of(context).dataStore;
       
-      final now = DateTime.now();
-      final scheduledDate = scheduledStart ?? now;
-
-      // 🎯 CRÉATION D'UNE TÂCHE TEMPORAIRE (pour le minuteur)
-      final tempTask = Task(
-        id: const Uuid().v4(), // Génère un ID unique pour la Task
-        title: title,
-        subtitle: description, 
-        
-        // ✅ CORRECTION : Tous les paramètres requis du constructeur Task sont passés
-        createdAtDate: now, 
-        createdAtTime: now, 
-        startDate: scheduledDate,
-        endDate: null, // <-- CORRECTION APPLIQUÉE : Passé explicitement à null car requis mais non encore connu
-        
-        // Valeurs par défaut
-        isCompleted: false, 
-        isOngoing: true, // On la marque comme en cours immédiatement avant de naviguer
-        steps: [],
-      );
-
-      // Afficher un message de succès
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Préparation de la session "$title"... Démarrage du minuteur.'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      if (widget.session != null) {
+        // Edit existing
+        widget.session!.title = _titleController.text;
+        widget.session!.description = _descController.text;
+        widget.session!.workDurationMinutes = _workMinutes;
+        widget.session!.breakDurationMinutes = _breakMinutes;
+        await widget.session!.save();
+      } else {
+        // Create new
+        final newSession = WorkSession.create(
+          title: _titleController.text,
+          description: _descController.text,
+          workDurationMinutes: _workMinutes,
+          breakDurationMinutes: _breakMinutes,
+        );
+        await dataStore.addSession(session: newSession);
+      }
       
-      // 1. Fermer la vue de création (pop)
-      Navigator.pop(context); 
-      
-      // 2. Naviguer vers la vue du minuteur (WorkSessionView) en lui passant la Task
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => WorkSessionView(task: tempTask), // Passe la Task à la vue du Minuteur
-        ),
-      );
+      if (mounted) Navigator.pop(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    var textTheme = Theme.of(context).textTheme;
+    final bool isEdit = widget.session != null;
 
     return Scaffold(
       appBar: AppBar(
-        // Laissez le bouton de retour par défaut (il permet de revenir à WorkSessionView)
-        leading: IconButton(
-          icon: const Icon(CupertinoIcons.chevron_back, color: MyColors.primaryColor),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          MyString.newSessionTitle, // Ex: "Nouvelle Session"
-          style: textTheme.headlineMedium,
-        ),
-        actions: [
-          // Bouton ENREGISTRER / CRÉER
-          TextButton(
-            onPressed: _createWorkSession,
-            child: Text(
-              MyString.createSessionBtn, // Ex: "CRÉER"
-              style: textTheme.titleMedium?.copyWith(
+        title: Text(isEdit ? "Edit Session" : "New Focus Session"),
+      ),
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextFormField(
+                controller: _titleController,
+                decoration: const InputDecoration(
+                  labelText: "Session Name",
+                  hintText: "e.g., Deep Work, Study, Coding",
+                  border: OutlineInputBorder(),
+                ),
+                validator: (v) => v == null || v.isEmpty ? "Required" : null,
+              ),
+              const SizedBox(height: 24),
+              TextFormField(
+                controller: _descController,
+                decoration: const InputDecoration(
+                  labelText: "Description",
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 32),
+              
+              Text("Durations", style: Theme.of(context).textTheme.titleMedium),
+              const Divider(),
+              
+              _buildDurationPicker(
+                label: "Work Duration",
+                value: _workMinutes,
+                onChanged: (v) => setState(() => _workMinutes = v),
                 color: MyColors.primaryColor,
               ),
-            ),
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ---------------------
-                // 1. TITRE DE LA SESSION
-                // ---------------------
-                Text(MyString.sessionTitle, style: textTheme.titleMedium),
-                const SizedBox(height: 10),
-                TextFormField(
-                  controller: titleController,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Le titre de la session est requis.';
-                    }
-                    return null;
-                  },
-                  decoration: const InputDecoration(
-                    hintText: 'Ex: Pomodoro pour le projet Flutter',
-                    border: OutlineInputBorder(),
+              
+              const SizedBox(height: 16),
+              
+              _buildDurationPicker(
+                label: "Break Duration",
+                value: _breakMinutes,
+                onChanged: (v) => setState(() => _breakMinutes = v),
+                color: Colors.green,
+              ),
+              
+              const SizedBox(height: 48),
+              
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _save,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: MyColors.primaryColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
+                  child: Text(isEdit ? "Update Session" : "Create Session", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
-                const SizedBox(height: 30),
-
-                // ---------------------
-                // 2. DESCRIPTION
-                // ---------------------
-                Text(MyString.sessionDescription, style: textTheme.titleMedium),
-                const SizedBox(height: 10),
-                TextFormField(
-                  controller: descriptionController,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    hintText: 'Ex: Coder la vue de création de session.',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 30),
-
-                // ---------------------
-                // 3. DURÉES (Travail & Pause)
-                // ---------------------
-                Text(MyString.durationSettings, style: textTheme.titleMedium),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    // Durée de Travail
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 10.0),
-                        child: TextFormField(
-                          controller: workDurationController,
-                          keyboardType: TextInputType.number,
-                          validator: (value) {
-                            if (int.tryParse(value ?? '') == null || (int.tryParse(value ?? '') ?? 0) <= 0) {
-                              return 'Doit être un nombre > 0';
-                            }
-                            return null;
-                          },
-                          decoration: const InputDecoration(
-                            labelText: 'Travail (min)',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Durée de Pause
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 10.0),
-                        child: TextFormField(
-                          controller: breakDurationController,
-                          keyboardType: TextInputType.number,
-                          validator: (value) {
-                            if (int.tryParse(value ?? '') == null || (int.tryParse(value ?? '') ?? 0) < 0) {
-                              return 'Doit être un nombre >= 0';
-                            }
-                            return null;
-                          },
-                          decoration: const InputDecoration(
-                            labelText: 'Pause (min)',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 30),
-
-                // ---------------------
-                // 4. DATE DE DÉBUT PLANIFIÉE (Optionnel)
-                // ---------------------
-                Text(MyString.scheduledStart, style: textTheme.titleMedium),
-                const SizedBox(height: 10),
-                GestureDetector(
-                  onTap: () {
-                    DatePicker.showDateTimePicker(
-                      context,
-                      showTitleActions: true,
-                      minTime: DateTime.now().subtract(const Duration(hours: 1)),
-                      maxTime: DateTime.now().add(const Duration(days: 365)),
-                      onConfirm: (date) {
-                        setState(() {
-                          scheduledStart = date;
-                        });
-                      },
-                      currentTime: scheduledStart,
-                      locale: LocaleType.fr, // Assurez-vous d'avoir 'fr' si vous utilisez français
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey),
-                      borderRadius: BorderRadius.circular(5),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.access_time),
-                        const SizedBox(width: 10),
-                        Text(
-                          scheduledStart == null
-                              ? MyString.chooseTime
-                              : DateFormat('dd MMM yyyy, HH:mm').format(scheduledStart!),
-                          style: textTheme.titleMedium,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 50),
-
-                // ---------------------
-                // 5. BOUTON DE CRÉATION FINAL
-                // ---------------------
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: _createWorkSession,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: MyColors.primaryColor,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: Text(
-                      MyString.startSessionAndSave, // Ex: "DÉMARRER LA SESSION"
-                      style: textTheme.headlineSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDurationPicker({required String label, required int value, required ValueChanged<int> onChanged, required Color color}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label),
+            Text("$value minutes", style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        Slider(
+          value: value.toDouble(),
+          min: 1,
+          max: 120,
+          activeColor: color,
+          onChanged: (v) => onChanged(v.toInt()),
+        ),
+      ],
     );
   }
 }

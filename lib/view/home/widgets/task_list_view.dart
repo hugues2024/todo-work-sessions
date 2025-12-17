@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:lottie/lottie.dart';
 
-/// Les imports sont corrigés et utilisent le chemin relatif
 import '../../../main.dart';
 import '../../../models/task.dart';
 import '../../../utils/colors.dart';
@@ -20,7 +19,6 @@ import 'task_widget.dart';
 class TaskListView extends StatelessWidget {
   const TaskListView({super.key});
 
-  /// Checking Done Tasks
   int checkDoneTask(List<Task> task) {
     int i = 0;
     for (Task doneTasks in task) {
@@ -31,9 +29,7 @@ class TaskListView extends StatelessWidget {
     return i;
   }
 
-  /// Checking The Value Of the Circle Indicator
   double valueOfTheIndicator(List<Task> task) {
-    // Renvoie la taille ou 1.0 si vide pour éviter la division par zéro.
     return task.isNotEmpty ? task.length.toDouble() : 1.0; 
   }
 
@@ -47,24 +43,17 @@ class TaskListView extends StatelessWidget {
       builder: (ctx, Box<Task> box, Widget? child) {
         var tasks = box.values.toList();
 
-        /// Sort Task List: Tâches incomplètes en premier, puis par date.
+        // 🎯 RETOUR AU TRI D'ORIGINE
         tasks.sort((a, b) {
-          // Tâches non complétées viennent avant les complétées
           if (a.isCompleted != b.isCompleted) {
             return a.isCompleted ? 1 : -1;
           }
-          // Sinon, trier par date croissante
           return a.createdAtDate.compareTo(b.createdAtDate);
         });
 
         return Scaffold(
-          // Retiré l'AppBar car HomeView la gère maintenant
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          
-          // Floating Action Button pour ajouter une tâche
           floatingActionButton: const FAB(),
-
-          /// Body (Seul le corps est conservé)
           body: _buildBody(
               tasks,
               base,
@@ -75,12 +64,7 @@ class TaskListView extends StatelessWidget {
     );
   }
 
-  /// Main Body Content
-  SizedBox _buildBody(
-    List<Task> tasks,
-    BaseWidget base,
-    TextTheme textTheme,
-  ) {
+  SizedBox _buildBody(List<Task> tasks, BaseWidget base, TextTheme textTheme) {
     final double totalTasks = valueOfTheIndicator(tasks);
     final int doneTasks = checkDoneTask(tasks);
     final double percentage = totalTasks > 0 ? (doneTasks / totalTasks) : 0.0;
@@ -90,7 +74,6 @@ class TaskListView extends StatelessWidget {
       height: double.infinity,
       child: Column(
         children: [
-          /// Top Section Of Home page : Header modernisé avec carte
           FadeInDown(
             duration: const Duration(milliseconds: 800),
             child: Container(
@@ -114,7 +97,6 @@ class TaskListView extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  /// Grand cercle de progression
                   Stack(
                     alignment: Alignment.center,
                     children: [
@@ -125,7 +107,7 @@ class TaskListView extends StatelessWidget {
                           valueColor: const AlwaysStoppedAnimation(Colors.white),
                           backgroundColor: Colors.white.withOpacity(0.3),
                           strokeWidth: 6,
-                          value: percentage, // Utilise la valeur calculée
+                          value: percentage,
                         ),
                       ),
                       Text(
@@ -139,8 +121,6 @@ class TaskListView extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(width: 20),
-
-                  /// Textes avec meilleure hiérarchie
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -163,34 +143,10 @@ class TaskListView extends StatelessWidget {
                       ],
                     ),
                   ),
-                  
-                  /// Badge de progression
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.check_circle, color: Colors.white, size: 16),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${doneTasks}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 ],
               ),
             ),
           ),
-
-          /// Bottom ListView : Tasks
           Expanded(
             child: tasks.isNotEmpty
                 ? ListView.builder(
@@ -198,31 +154,13 @@ class TaskListView extends StatelessWidget {
                     itemCount: tasks.length,
                     itemBuilder: (BuildContext context, int index) {
                       var task = tasks[index];
-
                       return FadeInLeft(
                         duration: const Duration(milliseconds: 500),
                         child: Dismissible(
                           direction: DismissDirection.horizontal,
-                          background: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                Icons.delete_outline,
-                                color: Colors.grey,
-                              ),
-                              const SizedBox(
-                                width: 8,
-                              ),
-                              Text(MyString.deletedTask,
-                                  style: const TextStyle(
-                                    color: Colors.grey,
-                                  ))
-                            ],
-                          ),
                           onDismissed: (direction) {
                             base.dataStore.deleteTask(task: task);
                           },
-                          // Utilisation d'une clé unique stable
                           key: Key(task.id), 
                           child: TaskWidget(
                             task: tasks[index],
@@ -231,24 +169,19 @@ class TaskListView extends StatelessWidget {
                       );
                     },
                   )
-
-                /// if All Tasks Done Show this Widgets
                 : Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      /// Lottie
                       FadeIn(
                         child: SizedBox(
                           width: 200,
                           height: 200,
                           child: Lottie.asset(
-                            lottieURL, // Assurez-vous que cette constante est définie
+                            lottieURL,
                             animate: true,
                           ),
                         ),
                       ),
-
-                      /// Bottom Texts
                       FadeInUp(
                         from: 30,
                         child: const Padding(
@@ -268,17 +201,14 @@ class TaskListView extends StatelessWidget {
   }
 }
 
-/// Floating Action Button (FAB) pour ajouter une tâche
 class FAB extends StatelessWidget {
   const FAB({super.key});
-
   @override
   Widget build(BuildContext context) {
     return FloatingActionButton(
       backgroundColor: MyColors.primaryColor,
-      heroTag: 'task_list_fab', // Changer le heroTag pour éviter les conflits si MainWrapper avait un FAB
+      heroTag: 'task_list_fab',
       onPressed: () {
-        // Appelle la vue de création/édition de tâche sans arguments pour le mode création
         Navigator.of(context).push(
           CupertinoPageRoute(
             builder: (context) => const TaskView(), 
