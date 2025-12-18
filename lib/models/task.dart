@@ -2,6 +2,7 @@
 
 import 'package:uuid/uuid.dart';
 import 'package:hive/hive.dart';
+import 'package:intl/intl.dart';
 
 part 'task.g.dart';
 
@@ -13,16 +14,16 @@ class Task extends HiveObject {
     required this.subtitle,
     required this.createdAtTime,
     required this.createdAtDate,
-    bool? isCompleted, // 🎯 Nullable
-    bool? isOngoing,   // 🎯 Nullable
+    this.isCompleted = false,
     this.startDate,
     this.endDate,
-    this.parentId,
     this.workingDuration = 0,
     this.priority = 1,
     this.status = "To Do",
-  }) : _isCompleted = isCompleted ?? false,
-       _isOngoing = isOngoing ?? false;
+    this.parentId,
+    this.isOngoing = false,
+    List<String>? history,
+  }) : history = history ?? [];
 
   @HiveField(0)
   final String id;
@@ -40,44 +41,47 @@ class Task extends HiveObject {
   DateTime createdAtDate;
 
   @HiveField(5)
-  bool? _isCompleted; // 🎯 Stockage nullable pour la migration
+  bool isCompleted;
 
-  @HiveField(7)
+  @HiveField(6)
   DateTime? startDate;
 
-  @HiveField(8)
+  @HiveField(7)
   DateTime? endDate;
-  
+
+  @HiveField(8)
+  int workingDuration;
+
   @HiveField(9)
-  bool? _isOngoing; // 🎯 Stockage nullable pour la migration
+  int priority;
 
   @HiveField(10)
-  String? parentId; 
-
-  @HiveField(11)
-  int workingDuration; 
-
-  @HiveField(12)
-  int priority; 
-
-  @HiveField(13)
   String status;
 
-  // 🎯 Getters/Setters pour garder le reste du code propre (non-nullable)
-  bool get isCompleted => _isCompleted ?? false;
-  set isCompleted(bool val) => _isCompleted = val;
+  @HiveField(11)
+  String? parentId;
 
-  bool get isOngoing => _isOngoing ?? false;
-  set isOngoing(bool val) => _isOngoing = val;
+  @HiveField(12)
+  bool isOngoing;
 
-  // HELPERS
+  @HiveField(13)
+  List<String> history; // 🎯 NOUVEAU: Journal d'activité
+
+  // Helpers UX
   bool get isSubTask => parentId != null;
 
-  String get workingDurationFormatted {
+  String get durationFormatted {
     final h = workingDuration ~/ 60;
     final m = workingDuration % 60;
-    if (h > 0) return "${h}h ${m}m";
-    return "${m}m";
+    if (h > 0) return "${h}h${m.toString().padLeft(2, '0')}";
+    return "${m}min";
+  }
+
+  // 🎯 Méthode pour ajouter une entrée au journal
+  void addLog(String message) {
+    final now = DateTime.now();
+    final timestamp = DateFormat('dd/MM HH:mm').format(now);
+    history.insert(0, "[$timestamp] $message");
   }
 
   factory Task.create({
@@ -85,23 +89,23 @@ class Task extends HiveObject {
     String subtitle = "",
     DateTime? startDate,
     DateTime? endDate,
-    String? parentId,
     int workingDuration = 0,
     int priority = 1,
+    String? parentId,
   }) {
-    return Task(
+    final task = Task(
       id: const Uuid().v4(),
       title: title,
       subtitle: subtitle,
       createdAtTime: DateTime.now(),
       createdAtDate: DateTime.now(),
       startDate: startDate ?? DateTime.now(),
-      endDate: endDate ?? DateTime.now().add(const Duration(hours: 1)),
-      parentId: parentId,
+      endDate: endDate ?? DateTime.now().add(const Duration(days: 1)),
       workingDuration: workingDuration,
       priority: priority,
-      isCompleted: false,
-      isOngoing: false,
+      parentId: parentId,
     );
+    task.addLog("Création de la ${parentId != null ? 'sous-tâche' : 'tâche'}");
+    return task;
   }
 }

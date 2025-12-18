@@ -84,9 +84,20 @@ class BaseWidget extends InheritedWidget {
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
+  
   @override
   Widget build(BuildContext context) {
     final base = BaseWidget.of(context);
+    
+    // 🎯 DÉFINITION COMMUNE ET PLUS PETITE DES TAILLES DE TEXTE
+    const textThemeBase = TextTheme(
+      displayLarge: TextStyle(fontWeight: FontWeight.bold, fontSize: 28), // Réduit de 35 à 28
+      titleMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w300), // Réduit de 16 à 14
+      displayMedium: TextStyle(fontSize: 18), // Réduit de 21 à 18
+      titleSmall: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+      titleLarge: TextStyle(fontSize: 22, fontWeight: FontWeight.bold), // Pour l'AppBar
+    );
+
     return ValueListenableBuilder<Box<UserProfile>>(
       valueListenable: base.dataStore.listenToUserProfile(),
       builder: (context, box, child) {
@@ -98,31 +109,43 @@ class MyApp extends StatelessWidget {
           title: 'Todo Work Sessions',
           themeMode: theme, 
           
-          // 🎯 THÈME CLAIR RESTAURÉ
           theme: ThemeData(
             primaryColor: MyColors.primaryColor,
             useMaterial3: true,
             brightness: Brightness.light,
             scaffoldBackgroundColor: Colors.white,
-            textTheme: const TextTheme(
-              displayLarge: TextStyle(color: MyColors.primaryColor, fontWeight: FontWeight.bold, fontSize: 35),
-              titleMedium: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w300),
-              displayMedium: TextStyle(color: Colors.white, fontSize: 21),
+            // 🎯 UNIFORMISATION DE L'APPBAR CLAIRE
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Colors.white,
+              elevation: 0,
+              titleTextStyle: TextStyle(color: MyColors.primaryColor, fontSize: 20, fontWeight: FontWeight.bold),
+              iconTheme: IconData(0xe092, fontFamily: 'MaterialIcons') == null ? null : IconThemeData(color: MyColors.primaryColor),
+            ),
+            textTheme: textThemeBase.copyWith(
+              displayLarge: textThemeBase.displayLarge?.copyWith(color: MyColors.primaryColor),
+              titleMedium: textThemeBase.titleMedium?.copyWith(color: Colors.grey),
+              displayMedium: textThemeBase.displayMedium?.copyWith(color: Colors.white),
             ),
           ),
 
-          // 🎯 THÈME SOMBRE RESTAURÉ
           darkTheme: ThemeData(
             brightness: Brightness.dark,
             primaryColor: MyColors.primaryColor,
             useMaterial3: true,
             scaffoldBackgroundColor: const Color(0xFF121212), 
-            textTheme: const TextTheme(
-              displayLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 35),
-              titleMedium: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w300),
-              displayMedium: TextStyle(color: Colors.white, fontSize: 21),
-              titleSmall: TextStyle(color: Colors.white70, fontWeight: FontWeight.w500),
-              titleLarge: TextStyle(fontSize: 40, color: Colors.white, fontWeight: FontWeight.w300),
+            // 🎯 UNIFORMISATION DE L'APPBAR SOMBRE
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Color(0xFF121212),
+              elevation: 0,
+              titleTextStyle: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+              iconTheme: IconThemeData(color: Colors.white),
+            ),
+            textTheme: textThemeBase.copyWith(
+              displayLarge: textThemeBase.displayLarge?.copyWith(color: Colors.white),
+              titleMedium: textThemeBase.titleMedium?.copyWith(color: Colors.grey),
+              displayMedium: textThemeBase.displayMedium?.copyWith(color: Colors.white),
+              titleSmall: textThemeBase.titleSmall?.copyWith(color: Colors.white70),
+              titleLarge: textThemeBase.titleLarge?.copyWith(color: Colors.white),
             ),
           ),
           

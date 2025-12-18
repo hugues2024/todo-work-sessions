@@ -23,11 +23,22 @@ class SessionTabView extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        // 🎯 FIX: Retire le bouton back automatique
         automaticallyImplyLeading: false,
         title: const Text("Horloge", style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
+        actions: [
+          // 🎯 BOUTON DO NOT DISTURB
+          IconButton(
+            onPressed: () => timerService.toggleDoNotDisturb(),
+            icon: Icon(
+              timerService.isDoNotDisturb ? CupertinoIcons.bell_slash_fill : CupertinoIcons.bell_fill,
+              color: timerService.isDoNotDisturb ? Colors.red : MyColors.primaryColor,
+            ),
+            tooltip: "Ne pas déranger",
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(

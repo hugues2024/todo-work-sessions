@@ -7,16 +7,9 @@ import '../../utils/colors.dart';
 import '../../services/timer_service.dart';
 import '../../main.dart';
 
-class TimerView extends StatefulWidget {
+class TimerView extends StatelessWidget {
   final bool isFromHub;
   const TimerView({super.key, this.isFromHub = false});
-
-  @override
-  State<TimerView> createState() => _TimerViewState();
-}
-
-class _TimerViewState extends State<TimerView> {
-  int _h = 0, _m = 0, _s = 0;
 
   String _formatDuration(Duration d) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
@@ -29,7 +22,7 @@ class _TimerViewState extends State<TimerView> {
   @override
   Widget build(BuildContext context) {
     final timerService = context.watch<TimerService>();
-    final dataStore = BaseWidget.of(context).dataStore; // 🎯 Récupération du dataStore
+    final dataStore = BaseWidget.of(context).dataStore;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDarkMode ? Colors.white : Colors.black;
 
@@ -40,10 +33,18 @@ class _TimerViewState extends State<TimerView> {
         title: const Text('Minuteur', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
-        leading: widget.isFromHub ? IconButton(
+        leading: isFromHub ? IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: MyColors.primaryColor),
           onPressed: () => timerService.minimizeTimer(),
         ) : null,
+        actions: [
+          if (timerService.currentTask != null)
+            IconButton(
+              icon: const Icon(Icons.close_rounded, color: Colors.redAccent),
+              onPressed: () => timerService.cancelTaskAndExit(dataStore),
+              tooltip: "Quitter la tâche",
+            ),
+        ],
       ),
       body: Center(
         child: Column(
@@ -68,17 +69,21 @@ class _TimerViewState extends State<TimerView> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                // 🎯 SAUVEGARDE SUR RESET : On passe le dataStore
-                _buildBtn(
-                  icon: CupertinoIcons.refresh, 
-                  onPressed: () => timerService.resetTimer(dataStore: dataStore), 
-                  isDarkMode: isDarkMode
-                ),
+                _buildBtn(icon: CupertinoIcons.refresh, onPressed: () => timerService.resetTimer(dataStore: dataStore), isDarkMode: isDarkMode),
                 _buildBtn(
                   icon: timerService.isRunning ? CupertinoIcons.pause_fill : CupertinoIcons.play_fill,
-                  onPressed: showPicker 
-                      ? () => timerService.setManualTimer(Duration(hours: _h, minutes: _m, seconds: _s))
-                      : (timerService.isRunning ? timerService.pauseTimer : () => timerService.startTimer(dataStore: dataStore)),
+                  // 🎯 FIX: Encapsulation dans un bloc pour éviter l'erreur de type 'void'
+                  onPressed: () {
+                    if (showPicker) {
+                      timerService.setManualTimer(Duration(hours: _h, minutes: _m, seconds: _s));
+                    } else {
+                      if (timerService.isRunning) {
+                        timerService.pauseTimer();
+                      } else {
+                        timerService.startTimer(dataStore: dataStore);
+                      }
+                    }
+                  },
                   isDarkMode: isDarkMode,
                   isPrimary: true,
                   size: 80,
@@ -98,6 +103,8 @@ class _TimerViewState extends State<TimerView> {
       ),
     );
   }
+
+  static int _h = 0, _m = 0, _s = 0;
 
   Widget _buildPicker(Color textColor) {
     return Row(

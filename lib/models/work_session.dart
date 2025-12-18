@@ -17,19 +17,22 @@ class WorkSession extends HiveObject {
   String description;
 
   @HiveField(3)
-  DateTime createdAt; // Début de la session
+  DateTime createdAt; 
 
   @HiveField(4)
-  DateTime? completedAt; // Fin de la session
+  DateTime? completedAt; 
 
   @HiveField(5)
-  int elapsedSeconds; // Temps total travaillé
+  int elapsedSeconds; 
 
   @HiveField(6)
-  String? taskId; // Optionnel : Lien vers la tâche ou sous-tâche
+  String? taskId; 
 
   @HiveField(7)
-  bool isPersonal; // Si démarré sans tâche spécifique
+  bool isPersonal;
+
+  @HiveField(8)
+  String sessionType; // 🎯 'Task', 'SubTask', 'Timer', 'Stopwatch'
 
   WorkSession({
     required this.id,
@@ -40,12 +43,14 @@ class WorkSession extends HiveObject {
     this.elapsedSeconds = 0,
     this.taskId,
     this.isPersonal = true,
+    this.sessionType = 'Timer',
   });
 
   factory WorkSession.create({
     required String title,
     String? taskId,
     bool isPersonal = true,
+    String sessionType = 'Timer',
   }) {
     return WorkSession(
       id: const Uuid().v4(),
@@ -53,6 +58,7 @@ class WorkSession extends HiveObject {
       createdAt: DateTime.now(),
       taskId: taskId,
       isPersonal: isPersonal,
+      sessionType: sessionType,
     );
   }
 
