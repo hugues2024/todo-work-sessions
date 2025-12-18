@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
+import 'package:sound_mode/sound_mode.dart'; // 🎯 Pour Android/iOS
+import 'package:sound_mode/utils/constants.dart';
 
 import '../models/task.dart';
 import '../models/work_session.dart';
@@ -22,17 +24,14 @@ const String _androidNotificationSoundName = 'notification';
 class TimerService extends ChangeNotifier {
   Task? _currentTask;
   WorkSession? _activeSession; 
-  
   Duration _totalDuration = Duration.zero;
   Duration _remainingDuration = Duration.zero;
   int _elapsedSeconds = 0; 
-  
   Timer? _timer;
   bool _isRunning = false;
   bool _isFinished = false;
   bool _isTimerMinimized = false;
 
-  // 🎯 NOUVEAU : MODE DO NOT DISTURB
   bool _isDoNotDisturb = false;
   bool get isDoNotDisturb => _isDoNotDisturb;
 
@@ -68,14 +67,34 @@ class TimerService extends ChangeNotifier {
     try { if (!kIsWeb && (Platform.isAndroid || Platform.isIOS || Platform.isLinux || Platform.isMacOS)) { await flutterLocalNotificationsPlugin.initialize(settings); } } catch (e) { debugPrint("Notification init failed: $e"); }
   }
 
-  // 🎯 TOGGLE DND
-  void toggleDoNotDisturb() {
+  // 🎯 TOGGLE DND SYSTÈME
+  Future<void> toggleDoNotDisturb() async {
     _isDoNotDisturb = !_isDoNotDisturb;
-    if (_isDoNotDisturb) {
-      _stopTictac(); // Coupe le tictac immédiatement si activé
-    } else if (_isRunning) {
-      _startTictac(); // Relance si le chrono tourne
+    
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      try {
+        if (_isDoNotDisturb) {
+          // Passe le téléphone en mode SILENCIEUX
+          await (SoundMode as dynamic).setSoundMode("SILENT");
+          _stopTictac();
+        } else {
+          // Repasse le téléphone en mode NORMAL
+          await (SoundMode as dynamic).setSoundMode("NORMAL");
+          if (_isRunning) _startTictac();
+        }
+      } catch (e) {
+        debugPrint("DND System Error: $e");
+      }
+    } else {
+      // Fallback pour Windows/Linux/Web : Mute uniquement l'application
+      if (_isDoNotDisturb) {
+        _stopTictac();
+        _stopAlarm();
+      } else if (_isRunning) {
+        _startTictac();
+      }
     }
+    
     notifyListeners();
   }
 
@@ -169,14 +188,12 @@ class TimerService extends ChangeNotifier {
     _stopTimerInternal();
     _isFinished = true;
     if (_currentTask != null) {
-      _currentTask!.status = "Done";
+      _currentTask!.status = "To Do"; // On remet en To Do pour répétition future
       _currentTask!.isCompleted = true;
       _currentTask!.isOngoing = false;
       await _currentTask!.save();
     }
     if (dataStore != null) await finalizeAndSaveSession(dataStore);
-    
-    // 🎯 SILENCE SI DND
     if (!_isDoNotDisturb) {
       _showNotification("Terminé", "Session de focus accomplie !");
       _playAlarm();
