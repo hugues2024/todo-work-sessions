@@ -1,4 +1,4 @@
-// lib/data/hive_data_store.dart - CODE COMPLET CORRIGÉ
+// lib/data/hive_data_store.dart
 
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -7,151 +7,70 @@ import '../models/task.dart';
 import '../models/user_profile.dart'; 
 import '../models/work_session.dart';
 import '../models/user_auth.dart';
+import '../models/alarm.dart'; 
 
-///
 class HiveDataStore {
-  // Constante de la Box Tâches
-  static const boxName = "tasksBox";
+  final Box<Task> taskBox; 
+  final Box<WorkSession> sessionBox; 
+  final Box<UserProfile> profileBox; 
+  final Box<UserAuth> authBox; 
+  final Box<Alarm> alarmBox; 
 
-  // Définitions des Boxes
-  final Box<Task> taskBox; // ✅ CHANGEMENT : Renommé 'box' en 'taskBox'
-  final Box<WorkSession> sessionBox; // Box WorkSession
-  final Box<UserProfile> profileBox; // Box UserProfile
-  final Box<UserAuth> authBox; // Box UserAuth
+  static const String _profileKey = "user_profile_key";
 
-  // Le constructeur DOIT accepter les 4 Box en arguments
-  // ✅ CHANGEMENT : Le constructeur utilise maintenant this.taskBox
-  HiveDataStore(this.taskBox, this.sessionBox, this.profileBox, this.authBox);
+  HiveDataStore(this.taskBox, this.sessionBox, this.profileBox, this.authBox, this.alarmBox);
 
-  // =========================================================================
-  // 🎯 GESTION DES TÂCHES (CRUD)
-  // =========================================================================
-
-  /// Add new Task
-  Future<void> addTask({required Task task}) async {
-    await taskBox.put(task.id, task); // ✅ CHANGEMENT : Utilise 'taskBox'
-  }
-
-  /// Show task
-  Future<Task?> getTask({required String id}) async {
-    return taskBox.get(id); // ✅ CHANGEMENT : Utilise 'taskBox'
-  }
-
-/// Update task
-Future<void> updateTask({required Task task}) async {
-  // task.save() enregistre toutes les modifications, y compris les nouveaux champs.
-  await task.save(); 
-}
-
-  /// Delete task
-  Future<void> deleteTask({required Task task}) async {
-    await task.delete();
-  }
-
-  ValueListenable<Box<Task>> listenToTask() {
-    return taskBox.listenable(); // ✅ CHANGEMENT : Utilise 'taskBox'
-  }
+  // --- TÂCHES ---
+  Future<void> addTask({required Task task}) async { await taskBox.put(task.id, task); }
+  Future<void> updateTask({required Task task}) async { await task.save(); }
+  Future<void> deleteTask({required Task task}) async { await task.delete(); }
+  ValueListenable<Box<Task>> listenToTask() => taskBox.listenable();
   
-  // =========================================================================
-  // 👤 GESTION DU PROFIL
-  // =========================================================================
+  // --- PROFIL ---
+  UserProfile? getLoggedInUserProfile() => profileBox.get(_profileKey);
+  Future<void> saveUserProfile(UserProfile profile) async { await profileBox.put(_profileKey, profile); }
+  ValueListenable<Box<UserProfile>> listenToUserProfile() => profileBox.listenable();
 
-  /// Récupère le profil de l'utilisateur actuellement connecté
-  UserProfile? getLoggedInUserProfile() {
-    final loggedInUser = getLoggedInUser();
+  // --- SESSIONS ---
+  Future<void> addSession({required WorkSession session}) async { await sessionBox.put(session.id, session); }
+  Future<void> deleteSession({required WorkSession session}) async { await session.delete(); }
+  ValueListenable<Box<WorkSession>> listenToSessions() => sessionBox.listenable();
 
-    if (loggedInUser.email == 'Utilisateur') { 
-        return null; 
-    }
-    
-    // 🎯 CORRECTION/CONFIRMATION : On utilise l'email de l'utilisateur authentifié comme clé du profil
-    return profileBox.get(loggedInUser.email);
-  }
-  
-  /// Sauvegarde ou met à jour le profil (lié à l'utilisateur connecté)
-  Future<void> saveUserProfile(UserProfile profile) async {
-    final loggedInUser = getLoggedInUser();
-    
-    if (loggedInUser.email != 'Utilisateur') {
-      // 🎯 CORRECTION/CONFIRMATION : Met à jour le profil en utilisant l'email comme clé unique
-      await profileBox.put(loggedInUser.email, profile);
-    }
+  // --- ALARMES ---
+  Future<void> addAlarm(Alarm alarm) async { await alarmBox.put(alarm.id, alarm); }
+  Future<void> deleteAlarm(Alarm alarm) async { await alarm.delete(); }
+  ValueListenable<Box<Alarm>> listenToAlarms() => alarmBox.listenable();
+
+  // --- AUTH ---
+  // 🎯 RESTAURATION DE LA MÉTHODE isUserLoggedIn
+  bool isUserLoggedIn() {
+    return authBox.values.any((user) => user.isLoggedIn);
   }
 
-  ValueListenable<Box<UserProfile>> listenToUserProfile() {
-    return profileBox.listenable();
-  }
-
-  // =========================================================================
-  // ⏱️ GESTION DES SESSIONS DE TRAVAIL (CRUD)
-  // =========================================================================
-
-  Future<void> addSession({required WorkSession session}) async {
-    await sessionBox.put(session.id, session);
-  }
-
-  Future<void> deleteSession({required WorkSession session}) async {
-    await session.delete();
-  }
-
-  ValueListenable<Box<WorkSession>> listenToSessions() {
-    return sessionBox.listenable();
-  }
-
-  WorkSession? findSession({required String id}) {
-    return sessionBox.get(id);
-  }
-
-  // =========================================================================
-  // 🔐 GESTION DE L'AUTHENTIFICATION
-  // =========================================================================
-  
   Future<bool> loginUser(String email, String password) async {
     final user = authBox.get(email);
-    
     if (user != null && user.password == password) {
-      await logout(); // Déconnecter tous les autres
+      await logout();
       user.isLoggedIn = true;
       await user.save();
       return true;
     }
     return false;
   }
-
   Future<bool> signupUser(String email, String password) async {
-    if (authBox.containsKey(email)) {
-      return false; // Utilisateur existe déjà
-    }
-    
+    if (authBox.containsKey(email)) return false;
     final newUser = UserAuth(email: email, password: password, isLoggedIn: true);
-    await logout(); // Déconnecter tous les autres
-    
+    await logout();
     await authBox.put(email, newUser);
     return true;
   }
-
-  bool isUserLoggedIn() {
-    return authBox.values.any((user) => user.isLoggedIn);
-  }
-
   UserAuth getLoggedInUser() {
     final loggedIn = authBox.values.where((user) => user.isLoggedIn);
-    if (loggedIn.isNotEmpty) {
-      return loggedIn.first;
-    }
-    // Utilisateur par défaut si personne n'est connecté
+    if (loggedIn.isNotEmpty) return loggedIn.first;
     return UserAuth(email: 'Utilisateur', password: '', isLoggedIn: false);
   }
-
   Future<void> logout() async {
     final users = authBox.values.where((user) => user.isLoggedIn);
-    for (var user in users) {
-      user.isLoggedIn = false;
-      await user.save();
-    }
-  }
-
-  ValueListenable<Box<UserAuth>> listenToAuth() {
-    return authBox.listenable();
+    for (var user in users) { user.isLoggedIn = false; await user.save(); }
   }
 }

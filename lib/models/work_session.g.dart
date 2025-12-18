@@ -17,23 +17,22 @@ class WorkSessionAdapter extends TypeAdapter<WorkSession> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return WorkSession(
+      id: fields[0] as String,
       title: fields[1] as String,
       description: fields[2] as String,
-      workDurationMinutes: fields[3] as int,
-      breakDurationMinutes: fields[4] as int,
-      createdAt: fields[5] as DateTime,
-      isCompleted: fields[6] as bool?,
-      completedAt: fields[7] as DateTime?,
-      isRunning: fields[8] as bool?,
-      elapsedSeconds: fields[9] as int,
-      isOnBreak: fields[10] as bool?,
-    )..id = fields[0] as String;
+      createdAt: fields[3] as DateTime,
+      completedAt: fields[4] as DateTime?,
+      elapsedSeconds: fields[5] as int,
+      taskId: fields[6] as String?,
+      isPersonal: fields[7] as bool,
+      sessionType: fields[8] as String,
+    );
   }
 
   @override
   void write(BinaryWriter writer, WorkSession obj) {
     writer
-      ..writeByte(11)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -41,21 +40,17 @@ class WorkSessionAdapter extends TypeAdapter<WorkSession> {
       ..writeByte(2)
       ..write(obj.description)
       ..writeByte(3)
-      ..write(obj.workDurationMinutes)
-      ..writeByte(4)
-      ..write(obj.breakDurationMinutes)
-      ..writeByte(5)
       ..write(obj.createdAt)
-      ..writeByte(6)
-      ..write(obj.isCompleted)
-      ..writeByte(7)
+      ..writeByte(4)
       ..write(obj.completedAt)
-      ..writeByte(8)
-      ..write(obj.isRunning)
-      ..writeByte(9)
+      ..writeByte(5)
       ..write(obj.elapsedSeconds)
-      ..writeByte(10)
-      ..write(obj.isOnBreak);
+      ..writeByte(6)
+      ..write(obj.taskId)
+      ..writeByte(7)
+      ..write(obj.isPersonal)
+      ..writeByte(8)
+      ..write(obj.sessionType);
   }
 
   @override

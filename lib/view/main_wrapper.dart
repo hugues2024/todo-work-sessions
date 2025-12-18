@@ -2,12 +2,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart'; 
+import 'package:provider/provider.dart';
 
-// Importez toutes les vues principales :
 import 'home/home_view.dart';
-import 'profile/profile_view.dart';
 import 'settings/settings_view.dart';
-import 'details/details_view.dart';
+import 'work_session/session_tab_view.dart'; 
+import 'work_session/session_history_view.dart'; // NOUVEAU
+import '../services/timer_service.dart';
 
 class MainWrapper extends StatefulWidget {
   final int initialIndex;
@@ -22,66 +23,48 @@ class MainWrapper extends StatefulWidget {
 }
 
 class _MainWrapperState extends State<MainWrapper> {
-  // 🎯 L'index est initialisé à l'index initial (par défaut 0)
-  late int _currentIndex; 
-
+  
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.initialIndex.clamp(0, 4);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<TimerService>().setTabIndex(widget.initialIndex);
+    });
   }
 
-  // Les 5 vues pour les 5 onglets de la barre inférieure principale
+  // 🎯 NAVIGATION À 4 ONGLETS CORRIGÉE
   final List<Widget> _views = const [
-    HomeView(),          // 0: Accueil (Contient Tâches, et lance Horloge/Calendrier en plein écran)
-    HomeView(),          // 1: Sessions (Pointe également sur HomeView)
-    ProfileView(),       // 2: Profil
-    SettingsView(),      // 3: Paramètres
-    DetailsView(),       // 4: Détails
+    HomeView(),          
+    SessionHistoryView(), // 1: Activité (Historique des sessions)
+    SessionTabView(),     // 2: Horloge (Hub des outils)
+    SettingsView(),      
   ];
 
   @override
   Widget build(BuildContext context) {
+    final timerService = context.watch<TimerService>();
+    final currentIndex = timerService.currentTabIndex;
+
     return Scaffold(
-      // Utilisation d'un IndexedStack pour ne pas reconstruire les vues à chaque changement d'onglet
       body: IndexedStack(
-        index: _currentIndex,
+        index: currentIndex,
         children: _views,
       ),
 
-      // La Barre de Navigation Inférieure (Main Wrapper)
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
+        currentIndex: currentIndex,
         onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
+          timerService.setTabIndex(index);
         },
         type: BottomNavigationBarType.fixed, 
         selectedItemColor: Theme.of(context).primaryColor, 
         unselectedItemColor: Colors.grey, 
         backgroundColor: Theme.of(context).scaffoldBackgroundColor, 
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(CupertinoIcons.house_fill),
-            label: "Accueil",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(CupertinoIcons.clock_fill),
-            label: "Sessions",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(CupertinoIcons.person_fill),
-            label: "Profil",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(CupertinoIcons.settings),
-            label: "Paramètres",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(CupertinoIcons.info_circle_fill),
-            label: "Détails",
-          ),
+          BottomNavigationBarItem(icon: Icon(CupertinoIcons.house_fill), label: "Accueil"),
+          BottomNavigationBarItem(icon: Icon(CupertinoIcons.graph_square_fill), label: "Activité"),
+          BottomNavigationBarItem(icon: Icon(CupertinoIcons.clock_fill), label: "Horloge"),
+          BottomNavigationBarItem(icon: Icon(CupertinoIcons.settings_solid), label: "Paramètres"),
         ],
       ),
     );

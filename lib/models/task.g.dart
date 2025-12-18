@@ -23,17 +23,21 @@ class TaskAdapter extends TypeAdapter<Task> {
       createdAtTime: fields[3] as DateTime,
       createdAtDate: fields[4] as DateTime,
       isCompleted: fields[5] as bool,
-      startDate: fields[7] as DateTime?,
-      endDate: fields[8] as DateTime?,
-      isOngoing: fields[9] as bool,
-      steps: (fields[6] as List?)?.cast<TaskStep>(),
+      startDate: fields[6] as DateTime?,
+      endDate: fields[7] as DateTime?,
+      workingDuration: fields[8] as int,
+      priority: fields[9] as int,
+      status: fields[10] as String,
+      parentId: fields[11] as String?,
+      isOngoing: fields[12] as bool,
+      history: (fields[13] as List?)?.cast<String>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, Task obj) {
     writer
-      ..writeByte(10)
+      ..writeByte(14)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -47,13 +51,21 @@ class TaskAdapter extends TypeAdapter<Task> {
       ..writeByte(5)
       ..write(obj.isCompleted)
       ..writeByte(6)
-      ..write(obj.steps)
-      ..writeByte(7)
       ..write(obj.startDate)
-      ..writeByte(8)
+      ..writeByte(7)
       ..write(obj.endDate)
+      ..writeByte(8)
+      ..write(obj.workingDuration)
       ..writeByte(9)
-      ..write(obj.isOngoing);
+      ..write(obj.priority)
+      ..writeByte(10)
+      ..write(obj.status)
+      ..writeByte(11)
+      ..write(obj.parentId)
+      ..writeByte(12)
+      ..write(obj.isOngoing)
+      ..writeByte(13)
+      ..write(obj.history);
   }
 
   @override

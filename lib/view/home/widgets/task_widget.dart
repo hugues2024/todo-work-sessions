@@ -3,274 +3,137 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
-///
 import '../../../models/task.dart';
 import '../../../utils/colors.dart';
+import '../../../utils/constanst.dart'; // 🎯 FIX: Import ajouté
 import '../../../view/tasks/task_view.dart';
+import '../../../services/timer_service.dart';
+import '../../../main.dart';
 
 class TaskWidget extends StatefulWidget {
   const TaskWidget({Key? key, required this.task}) : super(key: key);
-
   final Task task;
 
   @override
-  // ignore: library_private_types_in_public_api
   _TaskWidgetState createState() => _TaskWidgetState();
 }
 
 class _TaskWidgetState extends State<TaskWidget> {
-  // Suppression des TextEditingController locaux.
-  // La vue TaskView gère maintenant les contrôleurs en interne.
-  // Les données sont lues directement depuis widget.task.
   
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   // Logique initState non nécessaire
-  // }
-
-  // @override
-  // void dispose() {
-  //   // Logique dispose non nécessaire
-  //   super.dispose();
-  // }
+  Color _getPriorityColor(int priority) {
+    switch (priority) {
+      case 2: return Colors.red;
+      case 1: return Colors.orange;
+      case 0: return Colors.green;
+      default: return MyColors.primaryColor;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final timerService = context.watch<TimerService>();
+    final dataStore = BaseWidget.of(context).dataStore;
+    final priorityColor = _getPriorityColor(widget.task.priority);
+    
+    final bool isThisTaskActive = timerService.currentTask?.id == widget.task.id;
+    final bool isRunning = isThisTaskActive && timerService.isRunning;
+    final bool isDone = widget.task.status == "Done";
+    final bool isInProgress = widget.task.status == "In Progress";
+
     return GestureDetector(
-      onTap: () {
-        // CORRECTION: Appel du constructeur TaskView simplifié.
-        // Nous passons seulement la tâche à éditer.
-        Navigator.push(
-          context,
-          CupertinoPageRoute(
-            builder: (ctx) => TaskView(
-              task: widget.task,
-            ),
-          ),
-        );
-      },
-
-      /// Main Card - Style Material 3 modernisé
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 600),
+      onTap: () => Navigator.push(context, CupertinoPageRoute(builder: (ctx) => TaskView(task: widget.task))),
+      child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-            color: widget.task.isCompleted
-                ? Colors.green.shade50
-                : Theme.of(context).cardColor, // Utilise cardColor pour le thème
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withOpacity(.08),
-                  offset: const Offset(0, 4),
-                  blurRadius: 20,
-                  spreadRadius: -5)
-            ]),
-        child: IntrinsicHeight(
-          child: Row(
-            children: [
-              /// Barre verticale colorée selon le statut
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 600),
-                width: 5,
-                decoration: BoxDecoration(
-                  color: widget.task.isCompleted
-                      ? Colors.green
-                      : MyColors.primaryColor,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    bottomLeft: Radius.circular(16),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-
-            /// Check icon
-            leading: GestureDetector(
-              onTap: () {
-                setState(() { // setState est nécessaire pour rafraîchir l'icône dans ce widget
-                  // Marquer/démarquer la tâche comme complétée
-                  widget.task.isCompleted = !widget.task.isCompleted;
-                  
-                  // Synchroniser toutes les étapes avec l'état de la tâche
-                  for (var step in widget.task.steps) {
-                    step.isCompleted = widget.task.isCompleted;
-                    if (widget.task.isCompleted) {
-                      step.completedAt = DateTime.now();
-                    } else {
-                      step.completedAt = null;
-                    }
-                  }
-                  
-                  // Assurez-vous d'appeler save pour persister l'état
-                  widget.task.save(); 
-                });
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                decoration: BoxDecoration(
-                    color: widget.task.isCompleted
-                        ? MyColors.primaryColor
-                        : Colors.white,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: widget.task.isCompleted ? MyColors.primaryColor : Colors.grey, 
-                      width: 1.5 // Rendu plus visible
-                    )
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: Icon(
-                    Icons.check,
-                    color: widget.task.isCompleted ? Colors.white : Colors.transparent, // L'icône est invisible si non complété
-                    size: 18,
-                  ),
-                ),
-              ),
-            ),
-
-            /// title of Task
-            title: Padding(
-              padding: const EdgeInsets.only(bottom: 5, top: 3),
-              child: Text(
-                widget.task.title, // CORRECTION: Lecture directe de la propriété
-                style: TextStyle(
-                    color: widget.task.isCompleted
-                        ? Colors.grey.shade600
-                        : Theme.of(context).textTheme.titleMedium?.color, // Utilise la couleur du thème
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                    decoration: widget.task.isCompleted
-                        ? TextDecoration.lineThrough
-                        : null),
-              ),
-            ),
-
-            /// Description of task
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(.05), blurRadius: 15, offset: const Offset(0, 5))]
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Affiche le sous-titre uniquement s'il n'est pas vide
-                if (widget.task.subtitle.trim().isNotEmpty)
-                  Text(
-                    widget.task.subtitle, // CORRECTION: Lecture directe de la propriété
-                    style: TextStyle(
-                      color: widget.task.isCompleted
-                          ? Colors.grey.shade500
-                          : Colors.grey.shade600,
-                      fontWeight: FontWeight.w400,
-                      fontSize: 14,
-                      decoration: widget.task.isCompleted
-                          ? TextDecoration.lineThrough
-                          : null,
-                    ),
-                  ),
-
-                const SizedBox(height: 8),
-
-                /// Barre de progression si des étapes existent
-                if (widget.task.steps.isNotEmpty)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                Expanded(
+                  child: Row(
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: LinearProgressIndicator(
-                                value: widget.task.completionPercentage / 100,
-                                minHeight: 6,
-                                backgroundColor: Colors.grey.shade200,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  widget.task.isCompleted
-                                      ? Colors.green
-                                      : MyColors.primaryColor,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            "${widget.task.completionPercentage.toInt()}%",
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: widget.task.isCompleted
-                                  ? Colors.green.shade700
-                                  : MyColors.primaryColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        "${widget.task.steps.where((s) => s.isCompleted).length}/${widget.task.steps.length} étapes complétées",
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade600,
+                      Container(width: 4, height: 20, decoration: BoxDecoration(color: isDone ? Colors.green : priorityColor, borderRadius: BorderRadius.circular(2))),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          widget.task.title,
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, decoration: isDone ? TextDecoration.lineThrough : null),
+                          maxLines: 1, overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
-
-                const SizedBox(height: 8),
-
-                /// Date & Time of Task
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Padding(
-                    padding: const EdgeInsets.only(
-                      bottom: 10,
-                      top: 2,
-                    ),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: widget.task.isCompleted
-                            ? Colors.green.shade100
-                            : Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(8),
+                ),
+                
+                if (isDone)
+                  const Icon(Icons.check_circle, color: Colors.green)
+                else if (isRunning)
+                  Row(
+                    children: [
+                      IconButton(icon: const Icon(CupertinoIcons.checkmark_circle_fill, color: Colors.green, size: 28), onPressed: () => _markAsDone(timerService, dataStore)),
+                      IconButton(icon: const Icon(CupertinoIcons.pause_circle_fill, color: Colors.orange, size: 28), onPressed: () => timerService.pauseTimer(dataStore: dataStore)),
+                    ],
+                  )
+                else
+                  Row(
+                    children: [
+                      if (isInProgress)
+                        IconButton(icon: const Icon(CupertinoIcons.checkmark_circle_fill, color: Colors.green, size: 28), onPressed: () => _markAsDone(timerService, dataStore)),
+                      IconButton(
+                        icon: Icon(isInProgress ? CupertinoIcons.play_circle_fill : CupertinoIcons.play_circle, color: MyColors.primaryColor, size: 32),
+                        onPressed: () => timerService.startTaskTimer(widget.task),
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            DateFormat('HH:mm')
-                                .format(widget.task.createdAtTime),
-                            style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: widget.task.isCompleted
-                                    ? Colors.green.shade700
-                                    : Colors.grey.shade700),
-                          ),
-                          Text(
-                            DateFormat.yMMMEd()
-                                .format(widget.task.createdAtDate),
-                            style: TextStyle(
-                                fontSize: 11,
-                                color: widget.task.isCompleted
-                                    ? Colors.green.shade600
-                                    : Colors.grey.shade600),
-                          ),
-                        ],
-                      ),
-                    ),
+                    ],
                   ),
-                ),
               ],
-            )),
-                ),
-              
-            ],
-          ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _buildSmallInfo(Icons.calendar_today, "${DateFormat('dd/MM').format(widget.task.startDate!)} - ${DateFormat('dd/MM').format(widget.task.endDate!)}"),
+                const SizedBox(width: 16),
+                _buildSmallInfo(Icons.timer, widget.task.durationFormatted),
+                const Spacer(),
+                Text(widget.task.status.toUpperCase(), style: TextStyle(color: isDone ? Colors.green : priorityColor, fontSize: 10, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  void _markAsDone(dynamic timerService, dynamic dataStore) async {
+    timerService.pauseTimer(dataStore: dataStore); 
+    setState(() {
+      widget.task.status = "Done";
+      widget.task.isCompleted = true;
+      widget.task.addLog("Marquée comme terminée (Cascade activée)");
+      
+      final box = Hive.box<Task>(Constants.taskBox);
+      final subTasks = box.values.where((t) => t.parentId == widget.task.id);
+      for (var st in subTasks) {
+        st.status = "Done";
+        st.isCompleted = true;
+        st.addLog("Terminée par cascade du parent");
+        st.save();
+      }
+      
+      widget.task.save();
+    });
+  }
+
+  Widget _buildSmallInfo(IconData icon, String text) {
+    return Row(children: [Icon(icon, size: 12, color: Colors.grey), const SizedBox(width: 4), Text(text, style: const TextStyle(fontSize: 11, color: Colors.grey))]);
   }
 }
