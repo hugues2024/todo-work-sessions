@@ -26,13 +26,15 @@ class WorkSessionAdapter extends TypeAdapter<WorkSession> {
       taskId: fields[6] as String?,
       isPersonal: fields[7] as bool,
       sessionType: fields[8] as String,
+      workDurationMinutes: fields[9] as int,
+      breakDurationMinutes: fields[10] as int,
     );
   }
 
   @override
   void write(BinaryWriter writer, WorkSession obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -50,7 +52,11 @@ class WorkSessionAdapter extends TypeAdapter<WorkSession> {
       ..writeByte(7)
       ..write(obj.isPersonal)
       ..writeByte(8)
-      ..write(obj.sessionType);
+      ..write(obj.sessionType)
+      ..writeByte(9)
+      ..write(obj.workDurationMinutes)
+      ..writeByte(10)
+      ..write(obj.breakDurationMinutes);
   }
 
   @override

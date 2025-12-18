@@ -1,5 +1,3 @@
-// lib/models/work_session.dart
-
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
 
@@ -17,22 +15,28 @@ class WorkSession extends HiveObject {
   String description;
 
   @HiveField(3)
-  DateTime createdAt; 
+  DateTime createdAt;
 
   @HiveField(4)
-  DateTime? completedAt; 
+  DateTime? completedAt;
 
   @HiveField(5)
-  int elapsedSeconds; 
+  int elapsedSeconds;
 
   @HiveField(6)
-  String? taskId; 
+  String? taskId;
 
   @HiveField(7)
   bool isPersonal;
 
   @HiveField(8)
-  String sessionType; // 🎯 'Task', 'SubTask', 'Timer', 'Stopwatch'
+  String sessionType;
+
+  @HiveField(9)
+  int workDurationMinutes; // AJOUTÉ
+
+  @HiveField(10)
+  int breakDurationMinutes; // AJOUTÉ
 
   WorkSession({
     required this.id,
@@ -44,21 +48,29 @@ class WorkSession extends HiveObject {
     this.taskId,
     this.isPersonal = true,
     this.sessionType = 'Timer',
+    this.workDurationMinutes = 25,
+    this.breakDurationMinutes = 5,
   });
 
   factory WorkSession.create({
     required String title,
+    String description = "",
     String? taskId,
     bool isPersonal = true,
     String sessionType = 'Timer',
+    int workDurationMinutes = 25,
+    int breakDurationMinutes = 5,
   }) {
     return WorkSession(
       id: const Uuid().v4(),
       title: title,
+      description: description,
       createdAt: DateTime.now(),
       taskId: taskId,
       isPersonal: isPersonal,
       sessionType: sessionType,
+      workDurationMinutes: workDurationMinutes,
+      breakDurationMinutes: breakDurationMinutes,
     );
   }
 
