@@ -23,6 +23,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
 
+  // Enregistrement des adaptateurs
   Hive.registerAdapter<Task>(TaskAdapter());
   Hive.registerAdapter<TaskStep>(TaskStepAdapter()); 
   Hive.registerAdapter<UserProfile>(UserProfileAdapter());
@@ -30,10 +31,14 @@ Future<void> main() async {
   Hive.registerAdapter<UserAuth>(UserAuthAdapter());
   Hive.registerAdapter<Alarm>(AlarmAdapter()); 
 
+  // 🎯 PERSISTANCE ACTIVÉE : La ligne de nettoyage forcé est supprimée.
+  // On utilise un try-catch pour vider SEULEMENT en cas d'erreur de schéma.
+
   Box<Task> taskBox;
   try {
     taskBox = await Hive.openBox<Task>(Constants.taskBox);
   } catch (e) {
+    debugPrint("⚠️ Schéma Task obsolète. Réinitialisation...");
     final box = await Hive.openBox(Constants.taskBox);
     await box.clear();
     await box.close();
@@ -41,7 +46,18 @@ Future<void> main() async {
   }
 
   final profileBox = await Hive.openBox<UserProfile>(Constants.userProfileBox); 
-  final sessionBox = await Hive.openBox<WorkSession>(Constants.sessionBox);
+  
+  Box<WorkSession> sessionBox;
+  try {
+    sessionBox = await Hive.openBox<WorkSession>(Constants.sessionBox);
+  } catch (e) {
+    debugPrint("⚠️ Schéma WorkSession obsolète. Réinitialisation...");
+    final box = await Hive.openBox(Constants.sessionBox);
+    await box.clear();
+    await box.close();
+    sessionBox = await Hive.openBox<WorkSession>(Constants.sessionBox);
+  }
+
   final authBox = await Hive.openBox<UserAuth>(Constants.userAuthBox);
   final alarmBox = await Hive.openBox<Alarm>("alarmsBox"); 
 
@@ -76,18 +92,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final base = BaseWidget.of(context);
-    
-    // 🎯 Écoute globale des profils pour le thème
     return ValueListenableBuilder<Box<UserProfile>>(
       valueListenable: base.dataStore.listenToUserProfile(),
       builder: (context, box, child) {
-        
-        // 🎯 On récupère le profil de manière plus directe pour garantir la réactivité
-        final UserProfile? loggedInProfile = base.dataStore.getLoggedInUserProfile();
-        final UserProfile profile = loggedInProfile ?? (box.isNotEmpty ? box.getAt(0)! : UserProfile.defaultProfile());
-        
+        final profile = base.dataStore.getLoggedInUserProfile() ?? UserProfile.defaultProfile();
         ThemeMode theme = profile.themeMode == 1 ? ThemeMode.dark : ThemeMode.light;
-
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'Todo Work Sessions',

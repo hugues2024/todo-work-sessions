@@ -1,130 +1,96 @@
 // lib/view/clock/timer_view.dart
 
-import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../utils/colors.dart';
+import '../../services/timer_service.dart';
+import '../../main.dart';
 
 class TimerView extends StatefulWidget {
-  const TimerView({super.key});
+  final bool isFromHub;
+  const TimerView({super.key, this.isFromHub = false});
 
   @override
   State<TimerView> createState() => _TimerViewState();
 }
 
 class _TimerViewState extends State<TimerView> {
-  int _selectedHours = 0;
-  int _selectedMinutes = 0;
-  int _selectedSeconds = 10;
-  
-  Timer? _timer;
-  int _remainingSeconds = 0;
-  bool _isRunning = false;
+  int _h = 0, _m = 0, _s = 0;
 
-  final List<Map<String, dynamic>> presets = [
-    {'title': 'Meeting', 'duration': 1200, 'icon': CupertinoIcons.calendar},
-    {'title': 'Sleep', 'duration': 18000, 'icon': CupertinoIcons.moon},
-    {'title': 'Exercise', 'duration': 900, 'icon': CupertinoIcons.sportscourt},
-  ];
-
-  void _startTimer() {
-    if (_isRunning) return;
-    
-    if (_remainingSeconds == 0) {
-      _remainingSeconds = (_selectedHours * 3600) + (_selectedMinutes * 60) + _selectedSeconds;
-    }
-    
-    if (_remainingSeconds <= 0) return;
-
-    setState(() => _isRunning = true);
-    
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_remainingSeconds > 0) {
-        setState(() => _remainingSeconds--);
-      } else {
-        _stopTimer();
-        _showFinishedDialog();
-      }
-    });
-  }
-
-  void _stopTimer() {
-    _timer?.cancel();
-    setState(() => _isRunning = false);
-  }
-
-  void _resetTimer() {
-    _stopTimer();
-    setState(() => _remainingSeconds = 0);
-  }
-
-  void _showFinishedDialog() {
-    showCupertinoDialog(
-      context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: const Text("Minuteur terminé"),
-        actions: [
-          CupertinoDialogAction(
-            child: const Text("OK"),
-            onPressed: () => Navigator.pop(context),
-          )
-        ],
-      ),
-    );
-  }
-
-  String _formatHms(int totalSeconds) {
-    int h = totalSeconds ~/ 3600;
-    int m = (totalSeconds % 3600) ~/ 60;
-    int s = totalSeconds % 60;
-    return "${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}";
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
+  String _formatDuration(Duration d) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(d.inMinutes.remainder(60));
+    final seconds = twoDigits(d.inSeconds.remainder(60));
+    final hours = twoDigits(d.inHours);
+    return "$hours:$minutes:$seconds";
   }
 
   @override
   Widget build(BuildContext context) {
+    final timerService = context.watch<TimerService>();
+    final dataStore = BaseWidget.of(context).dataStore; // 🎯 Récupération du dataStore
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDarkMode ? Colors.white : Colors.black;
 
+    final bool showPicker = timerService.currentTask == null && !timerService.isRunning && timerService.remainingDuration == Duration.zero;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Timer', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Minuteur', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
+        leading: widget.isFromHub ? IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: MyColors.primaryColor),
+          onPressed: () => timerService.minimizeTimer(),
+        ) : null,
       ),
-      body: SingleChildScrollView(
+      body: Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const SizedBox(height: 40),
-            if (!_isRunning && _remainingSeconds == 0)
-              _buildPickers(textColor)
-            else
-              _buildCountdown(textColor),
+            if (timerService.currentTask != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 20),
+                child: Text(
+                  timerService.currentTask!.title,
+                  style: TextStyle(color: MyColors.primaryColor, fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+              ),
 
-            const SizedBox(height: 40),
-            
-            if (!_isRunning && _remainingSeconds == 0)
-              _buildPresets(isDarkMode, textColor),
-            
+            if (showPicker)
+              _buildPicker(textColor)
+            else
+              _buildCountdown(timerService, textColor),
+
             const SizedBox(height: 60),
 
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildBtn(icon: CupertinoIcons.refresh, onPressed: _resetTimer, isDarkMode: isDarkMode),
+                // 🎯 SAUVEGARDE SUR RESET : On passe le dataStore
                 _buildBtn(
-                  icon: _isRunning ? CupertinoIcons.pause_fill : CupertinoIcons.play_fill,
-                  onPressed: _isRunning ? _stopTimer : _startTimer,
+                  icon: CupertinoIcons.refresh, 
+                  onPressed: () => timerService.resetTimer(dataStore: dataStore), 
+                  isDarkMode: isDarkMode
+                ),
+                _buildBtn(
+                  icon: timerService.isRunning ? CupertinoIcons.pause_fill : CupertinoIcons.play_fill,
+                  onPressed: showPicker 
+                      ? () => timerService.setManualTimer(Duration(hours: _h, minutes: _m, seconds: _s))
+                      : (timerService.isRunning ? timerService.pauseTimer : () => timerService.startTimer(dataStore: dataStore)),
                   isDarkMode: isDarkMode,
                   isPrimary: true,
                   size: 80,
                 ),
-                _buildBtn(icon: CupertinoIcons.bell, onPressed: () {}, isDarkMode: isDarkMode),
+                if (showPicker)
+                  _buildBtn(
+                    icon: CupertinoIcons.check_mark, 
+                    onPressed: () => timerService.setManualTimer(Duration(hours: _h, minutes: _m, seconds: _s)), 
+                    isDarkMode: isDarkMode
+                  )
+                else
+                  _buildBtn(icon: CupertinoIcons.bell, onPressed: () {}, isDarkMode: isDarkMode),
               ],
             ),
           ],
@@ -133,13 +99,13 @@ class _TimerViewState extends State<TimerView> {
     );
   }
 
-  Widget _buildPickers(Color textColor) {
+  Widget _buildPicker(Color textColor) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _buildWheel(60, (v) => _selectedHours = v, "h", textColor),
-        _buildWheel(60, (v) => _selectedMinutes = v, "m", textColor),
-        _buildWheel(60, (v) => _selectedSeconds = v, "s", textColor),
+        _buildWheel(24, (v) => _h = v, "h", textColor),
+        _buildWheel(60, (v) => _m = v, "m", textColor),
+        _buildWheel(60, (v) => _s = v, "s", textColor),
       ],
     );
   }
@@ -148,14 +114,16 @@ class _TimerViewState extends State<TimerView> {
     return Column(
       children: [
         SizedBox(
-          height: 120, width: 70,
+          height: 150, width: 70,
           child: ListWheelScrollView.useDelegate(
-            itemExtent: 40,
+            itemExtent: 50,
+            perspective: 0.005,
+            diameterRatio: 1.2,
             physics: const FixedExtentScrollPhysics(),
             onSelectedItemChanged: onSelected,
             childDelegate: ListWheelChildBuilderDelegate(
               childCount: count,
-              builder: (context, index) => Center(child: Text(index.toString().padLeft(2, '0'), style: TextStyle(fontSize: 24, color: textColor))),
+              builder: (context, index) => Center(child: Text(index.toString().padLeft(2, '0'), style: TextStyle(fontSize: 32, color: textColor))),
             ),
           ),
         ),
@@ -164,43 +132,24 @@ class _TimerViewState extends State<TimerView> {
     );
   }
 
-  Widget _buildCountdown(Color textColor) {
-    return Center(
-      child: Text(
-        _formatHms(_remainingSeconds),
-        style: TextStyle(fontSize: 70, fontWeight: FontWeight.w200, color: textColor, fontFeatures: const [FontFeature.tabularFigures()]),
-      ),
-    );
-  }
-
-  Widget _buildPresets(bool isDarkMode, Color textColor) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: presets.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 10, mainAxisSpacing: 10),
-        itemBuilder: (context, index) {
-          final p = presets[index];
-          return InkWell(
-            onTap: () => setState(() => _remainingSeconds = p['duration'] as int),
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: isDarkMode ? Colors.white10 : Colors.grey.shade200, borderRadius: BorderRadius.circular(12)),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(p['icon'] as IconData, color: textColor, size: 20),
-                  const SizedBox(height: 5),
-                  Text(p['title'] as String, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                  Text(_formatHms(p['duration'] as int), style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+  Widget _buildCountdown(TimerService timerService, Color textColor) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        SizedBox(
+          width: 250, height: 250,
+          child: CircularProgressIndicator(
+            value: timerService.progress,
+            strokeWidth: 10,
+            backgroundColor: Colors.grey.shade200,
+            valueColor: AlwaysStoppedAnimation<Color>(MyColors.primaryColor),
+          ),
+        ),
+        Text(
+          _formatDuration(timerService.remainingDuration),
+          style: TextStyle(fontSize: 48, fontWeight: FontWeight.w200, color: textColor, fontFeatures: const [FontFeature.tabularFigures()]),
+        ),
+      ],
     );
   }
 

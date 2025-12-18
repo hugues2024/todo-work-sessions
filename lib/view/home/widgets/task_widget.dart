@@ -3,14 +3,15 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import '../../../models/task.dart';
 import '../../../utils/colors.dart';
 import '../../../view/tasks/task_view.dart';
+import '../../../services/timer_service.dart';
 
 class TaskWidget extends StatefulWidget {
   const TaskWidget({Key? key, required this.task}) : super(key: key);
-
   final Task task;
 
   @override
@@ -18,190 +19,125 @@ class TaskWidget extends StatefulWidget {
 }
 
 class _TaskWidgetState extends State<TaskWidget> {
+  
+  Color _getPriorityColor(int priority) {
+    switch (priority) {
+      case 2: return Colors.red;
+      case 1: return Colors.orange;
+      case 0: return Colors.green;
+      default: return MyColors.primaryColor;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final timerService = context.watch<TimerService>();
+    final priorityColor = _getPriorityColor(widget.task.priority);
+    
+    // 🎯 État dynamique pour savoir si CETTE tâche est celle qui tourne
+    final bool isThisTaskRunning = timerService.currentTask?.id == widget.task.id && timerService.isRunning;
+    final bool isThisTaskPaused = timerService.currentTask?.id == widget.task.id && !timerService.isRunning && timerService.remainingDuration > Duration.zero;
+
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          CupertinoPageRoute(
-            builder: (ctx) => TaskView(
-              task: widget.task,
-            ),
-          ),
-        );
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 600),
+      onTap: () => Navigator.push(context, CupertinoPageRoute(builder: (ctx) => TaskView(task: widget.task))),
+      child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-            color: widget.task.isCompleted
-                ? Colors.green.shade50
-                : Theme.of(context).cardColor, 
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withOpacity(.08),
-                  offset: const Offset(0, 4),
-                  blurRadius: 20,
-                  spreadRadius: -5)
-            ]),
-        child: IntrinsicHeight(
-          child: Row(
-            children: [
-              // 🎯 RETOUR À LA BARRE DE COULEUR SIMPLE
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 600),
-                width: 5,
-                decoration: BoxDecoration(
-                  color: widget.task.isCompleted
-                      ? Colors.green
-                      : MyColors.primaryColor,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    bottomLeft: Radius.circular(16),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  leading: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        widget.task.isCompleted = !widget.task.isCompleted;
-                        for (var step in widget.task.steps) {
-                          step.isCompleted = widget.task.isCompleted;
-                          if (widget.task.isCompleted) {
-                            step.completedAt = DateTime.now();
-                          } else {
-                            step.completedAt = null;
-                          }
-                        }
-                        widget.task.save(); 
-                      });
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      decoration: BoxDecoration(
-                          color: widget.task.isCompleted
-                              ? MyColors.primaryColor
-                              : Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: widget.task.isCompleted ? MyColors.primaryColor : Colors.grey, 
-                            width: 1.5
-                          )
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: Icon(
-                          Icons.check,
-                          color: widget.task.isCompleted ? Colors.white : Colors.transparent,
-                          size: 18,
-                        ),
-                      ),
-                    ),
-                  ),
-                  title: Text(
-                    widget.task.title,
-                    style: TextStyle(
-                        color: widget.task.isCompleted
-                            ? Colors.grey.shade600
-                            : Theme.of(context).textTheme.titleMedium?.color,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                        decoration: widget.task.isCompleted
-                            ? TextDecoration.lineThrough
-                            : null),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(.05), blurRadius: 15, offset: const Offset(0, 5))]
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Row(
                     children: [
-                      if (widget.task.subtitle.trim().isNotEmpty)
-                        Text(
-                          widget.task.subtitle,
+                      Container(width: 4, height: 20, decoration: BoxDecoration(color: widget.task.status == "Done" ? Colors.green : priorityColor, borderRadius: BorderRadius.circular(2))),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          widget.task.title,
                           style: TextStyle(
-                            color: widget.task.isCompleted
-                                ? Colors.grey.shade500
-                                : Colors.grey.shade600,
-                            fontWeight: FontWeight.w400,
-                            fontSize: 14,
-                            decoration: widget.task.isCompleted
-                                ? TextDecoration.lineThrough
-                                : null,
+                            fontSize: 18, 
+                            fontWeight: FontWeight.bold,
+                            decoration: widget.task.status == "Done" ? TextDecoration.lineThrough : null,
                           ),
-                        ),
-                      const SizedBox(height: 8),
-                      if (widget.task.steps.isNotEmpty)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: LinearProgressIndicator(
-                                      value: widget.task.completionPercentage / 100,
-                                      minHeight: 6,
-                                      backgroundColor: Colors.grey.shade200,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        widget.task.isCompleted
-                                            ? Colors.green
-                                            : MyColors.primaryColor,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  "${widget.task.completionPercentage.toInt()}%",
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: widget.task.isCompleted
-                                        ? Colors.green.shade700
-                                        : MyColors.primaryColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              "${widget.task.steps.where((s) => s.isCompleted).length}/${widget.task.steps.length} étapes complétées",
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: widget.task.isCompleted ? Colors.green.shade100 : Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Column(
-                            children: [
-                              Text(DateFormat('HH:mm').format(widget.task.createdAtTime), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: widget.task.isCompleted ? Colors.green.shade700 : Colors.grey.shade700)),
-                              Text(DateFormat.yMMMEd().format(widget.task.createdAtDate), style: TextStyle(fontSize: 11, color: widget.task.isCompleted ? Colors.green.shade600 : Colors.grey.shade600)),
-                            ],
-                          ),
+                          maxLines: 1, overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
-          ),
+                
+                // 🎯 ACTIONS DYNAMIQUES
+                if (widget.task.status != "Done") ...[
+                  if (isThisTaskRunning) ...[
+                    // Tâche en cours : Pause + Done
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(CupertinoIcons.checkmark_circle_fill, color: Colors.green, size: 28),
+                          onPressed: () {
+                            timerService.pauseTimer();
+                            setState(() {
+                              widget.task.status = "Done";
+                              widget.task.isCompleted = true;
+                              widget.task.save();
+                            });
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(CupertinoIcons.pause_circle_fill, color: Colors.orange, size: 28),
+                          onPressed: () => timerService.pauseTimer(),
+                        ),
+                      ],
+                    ),
+                  ] else ...[
+                    // Tâche en attente ou en pause : Play
+                    IconButton(
+                      icon: Icon(
+                        isThisTaskPaused ? CupertinoIcons.play_circle_fill : CupertinoIcons.play_circle,
+                        color: MyColors.primaryColor, 
+                        size: 32
+                      ),
+                      onPressed: () => timerService.startTaskTimer(widget.task),
+                    ),
+                  ],
+                ] else
+                  const Icon(Icons.check_circle, color: Colors.green),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _buildSmallInfo(Icons.calendar_today, "${DateFormat('dd/MM').format(widget.task.startDate!)} - ${DateFormat('dd/MM').format(widget.task.endDate!)}"),
+                const SizedBox(width: 16),
+                _buildSmallInfo(Icons.timer, widget.task.workingDurationFormatted),
+                const Spacer(),
+                Text(
+                  widget.task.status.toUpperCase(),
+                  style: TextStyle(color: widget.task.status == "Done" ? Colors.green : priorityColor, fontSize: 10, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSmallInfo(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 12, color: Colors.grey),
+        const SizedBox(width: 4),
+        Text(text, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+      ],
     );
   }
 }

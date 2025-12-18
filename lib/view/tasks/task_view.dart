@@ -1,239 +1,175 @@
 // lib/view/tasks/task_view.dart
 
-// ignore_for_file: must_be_immutable, use_build_context_synchronously
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:uuid/uuid.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../main.dart';
 import '../../../models/task.dart';
 import '../../../utils/colors.dart';
-import '../../../utils/strings.dart';
 import 'widgets/task_form_section.dart';
-import 'widgets/timer_section.dart'; // NOUVEAU
 
 class TaskView extends StatefulWidget {
-  final Task? task; // Tâche passée pour la modification (si non null)
+  final Task? task;
+  final String? parentId; 
 
-  const TaskView({Key? key, this.task}) : super(key: key);
+  const TaskView({Key? key, this.task, this.parentId}) : super(key: key);
 
   @override
   State<TaskView> createState() => _TaskViewState();
 }
 
-class _TaskViewState extends State<TaskView> with SingleTickerProviderStateMixin {
+class _TaskViewState extends State<TaskView> {
   final _titleController = TextEditingController();
-  final _noteController = TextEditingController(); 
+  final _noteController = TextEditingController();
   
-  int _currentIndex = 0; // 0: Formulaire, 1: Minuteur
-
-  DateTime? _selectedStartDate; 
-  DateTime? _selectedEndDate;   
+  bool _isEditing = false;
   
-  bool get isUpdateMode => widget.task != null; 
-  bool get showTimerView => _currentIndex == 1; 
+  DateTime? _startDate;
+  DateTime? _endDate;
+  int _workingDuration = 0;
+  int _priority = 1;
 
   @override
   void initState() {
     super.initState();
-    
-    if (isUpdateMode) {
+    _isEditing = widget.task == null; 
+    if (widget.task != null) {
       _titleController.text = widget.task!.title;
       _noteController.text = widget.task!.subtitle;
-      
-      _selectedStartDate = widget.task!.startDate; 
-      _selectedEndDate = widget.task!.endDate;
-    } 
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _noteController.dispose();
-    super.dispose();
-  }
-  
-  void _updateDateTime(DateTime? start, DateTime? end) {
-    setState(() {
-      _selectedStartDate = start;
-      _selectedEndDate = end;
-    });
-  }
-
-  Future<void> _saveTask(BuildContext context) async {
-    final base = BaseWidget.of(context).dataStore;
-    final title = _titleController.text.trim();
-    final subtitle = _noteController.text.trim();
-
-    if (title.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(MyString.emptyFields),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-      return;
+      _startDate = widget.task!.startDate;
+      _endDate = widget.task!.endDate;
+      _workingDuration = widget.task!.workingDuration;
+      _priority = widget.task!.priority;
     }
-    
-    final Task newTask;
-    
-    if (isUpdateMode) {
-      widget.task!.title = title;
-      widget.task!.subtitle = subtitle;
-      widget.task!.startDate = _selectedStartDate; 
-      widget.task!.endDate = _selectedEndDate;
-      
-      await base.updateTask(task: widget.task!);
-      newTask = widget.task!;
-
-    } else {
-      newTask = Task.create(
-        title: title,
-        subtitle: subtitle, 
-        startDate: _selectedStartDate, 
-        endDate: _selectedEndDate, 
-      );
-      await base.addTask(task: newTask);
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(MyString.successMessage),
-        backgroundColor: MyColors.primaryColor,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-
-    Navigator.of(context).pop(); 
   }
 
-  Widget _buildBody() {
-    if (isUpdateMode && _currentIndex == 1) {
-      return TimerSection(task: widget.task!);
+  void _onDataChanged(DateTime? s, DateTime? e, int dur, int p) {
+    _startDate = s; _endDate = e; _workingDuration = dur; _priority = p;
+  }
+
+  Future<void> _save() async {
+    final dataStore = BaseWidget.of(context).dataStore;
+    if (_titleController.text.trim().isEmpty) return;
+
+    if (widget.task != null) {
+      widget.task!.title = _titleController.text;
+      widget.task!.subtitle = _noteController.text;
+      widget.task!.startDate = _startDate;
+      widget.task!.endDate = _endDate;
+      widget.task!.workingDuration = _workingDuration;
+      widget.task!.priority = _priority;
+      await widget.task!.save();
+      setState(() => _isEditing = false);
     } else {
-      return TaskFormSection(
-        task: widget.task,
-        titleController: _titleController,
-        noteController: _noteController,
-        onDateTimeChanged: _updateDateTime,
+      final newTask = Task.create(
+        title: _titleController.text,
+        subtitle: _noteController.text,
+        startDate: _startDate,
+        endDate: _endDate,
+        workingDuration: _workingDuration,
+        priority: _priority,
+        parentId: widget.parentId,
       );
+      await dataStore.addTask(task: newTask);
+      Navigator.pop(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    
-    final String titleText = isUpdateMode && _currentIndex == 0
-        ? MyString.updateCurrentTask 
-        : isUpdateMode && _currentIndex == 1
-            ? MyString.timerTitle 
-            : MyString.addNewTask;
-    
-    final String buttonText = isUpdateMode ? MyString.updateTaskString : MyString.addTaskString;
-
-    // Le texte à afficher à côté de la flèche de retour
-    final Widget appBarTitleContent = isUpdateMode
-        ? Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Texte "Modifier tâche" à côté de la flèche (partie du titre)
-              Text(
-                titleText, 
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: MyColors.primaryColor,
-                  // Réduit la taille pour donner plus d'espace au leading
-                  fontSize: 18, 
-                ),
-              ),
-            ],
-          )
-        : Text(
-            titleText, 
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: MyColors.primaryColor)
-          );
+    final dataStore = BaseWidget.of(context).dataStore;
 
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: !isUpdateMode, 
-        
-        // 🎯 LEADING OPTIMISÉ (Utilise l'IconButton par défaut pour la flèche de retour)
-        leading: isUpdateMode
-            ? IconButton(
-                icon: const Icon(
-                  Icons.arrow_back_ios,
-                  color: MyColors.primaryColor,
-                ),
-                onPressed: () => Navigator.of(context).pop(),
-              )
-            : null,
-        
-        // 🎯 TITRE DÉPLACÉ À GAUCHE POUR ACCUEILLIR LE TEXTE "Modifier tâche"
-        title: appBarTitleContent,
-        
-        // Réduit l'espacement entre le leading et le title
-        titleSpacing: isUpdateMode ? 0 : NavigationToolbar.kMiddleSpacing, 
-
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        
-        actions: isUpdateMode
-            ? [
-                // 1. Icône Modifier (Formulaire)
-                Tooltip(
-                  message: MyString.editTab,
-                  child: IconButton(
-                    icon: Icon(
-                      CupertinoIcons.square_list,
-                      color: _currentIndex == 0 ? MyColors.primaryColor : Colors.grey,
-                    ),
-                    onPressed: () => setState(() => _currentIndex = 0),
-                  ),
-                ),
-                
-                // 2. Icône Minuteur
-                Tooltip(
-                  message: MyString.timerTitle,
-                  child: IconButton(
-                    icon: Icon(
-                      CupertinoIcons.timer,
-                      color: _currentIndex == 1 ? MyColors.primaryColor : Colors.grey,
-                    ),
-                    onPressed: () => setState(() => _currentIndex = 1),
-                  ),
-                ),
-                const SizedBox(width: 8),
-              ]
-            : null,
+        title: Text(_isEditing ? "Configuration" : "Détails"),
+        actions: [
+          if (!_isEditing)
+            IconButton(icon: const Icon(Icons.edit), onPressed: () => setState(() => _isEditing = true)),
+          if (_isEditing)
+            IconButton(icon: const Icon(Icons.check, color: MyColors.primaryColor), onPressed: _save),
+        ],
       ),
-      
-      body: _buildBody(),
-      
-      floatingActionButton: !showTimerView ? Padding(
-        padding: const EdgeInsets.only(bottom: 20, left: 30),
-        child: SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: () => _saveTask(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: MyColors.primaryColor,
-              padding: const EdgeInsets.symmetric(vertical: 18),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
+      body: _isEditing ? _buildEditor() : _buildDetails(dataStore),
+    );
+  }
+
+  Widget _buildEditor() {
+    return TaskFormSection(
+      task: widget.task,
+      titleController: _titleController,
+      noteController: _noteController,
+      onDataChanged: _onDataChanged,
+    );
+  }
+
+  Widget _buildDetails(dynamic dataStore) {
+    final t = widget.task!;
+    // 🎯 FIX: Une sous-tâche ne peut pas avoir de sous-tâches
+    final bool canHaveSubTasks = t.parentId == null;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(t.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text(t.subtitle, style: const TextStyle(color: Colors.grey)),
+          const SizedBox(height: 24),
+          
+          _buildInfoRow(Icons.calendar_today, "Plage : ${DateFormat('dd/MM').format(t.startDate!)} - ${DateFormat('dd/MM').format(t.endDate!)}"),
+          _buildInfoRow(Icons.timer, "Durée de travail : ${t.workingDurationFormatted}"),
+          
+          if (canHaveSubTasks) ...[
+            const Divider(height: 40),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("SOUS-TÂCHES", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                TextButton.icon(
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text("Ajouter"),
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (ctx) => TaskView(parentId: t.id))),
+                ),
+              ],
             ),
-            child: Text(
-              buttonText,
-              style: const TextStyle(
-                color: Colors.white, 
-                fontSize: 18, 
-                fontWeight: FontWeight.bold
-              ),
+            
+            ValueListenableBuilder(
+              valueListenable: dataStore.listenToTask(),
+              builder: (ctx, Box<Task> box, _) {
+                final subTasks = box.values.where((st) => st.parentId == t.id).toList();
+                if (subTasks.isEmpty) return const Text("Aucune sous-tâche");
+                
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: subTasks.length,
+                  itemBuilder: (ctx, i) {
+                    final st = subTasks[i];
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(st.title),
+                      subtitle: Text(st.workingDurationFormatted),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (ctx) => TaskView(task: st))),
+                    );
+                  },
+                );
+              },
             ),
-          ),
-        ),
-      ) : null,
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(children: [Icon(icon, size: 16, color: MyColors.primaryColor), const SizedBox(width: 12), Text(text)]),
     );
   }
 }
