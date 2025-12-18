@@ -1,28 +1,23 @@
 // lib/view/tasks/widgets/task_form_section.dart
 
-// ignore_for_file: must_be_immutable, use_build_context_synchronously
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
-import '../../../main.dart';
 import '../../../models/task.dart';
 import '../../../utils/colors.dart';
-import '../../../utils/strings.dart';
 
 class TaskFormSection extends StatefulWidget {
-  final Task? task; // null pour la création
+  final Task? task;
   final TextEditingController titleController;
   final TextEditingController noteController;
-  final Function(DateTime?, DateTime?) onDateTimeChanged; // Callback pour mettre à jour TaskView
+  final Function(DateTime?, DateTime?, int, int) onDataChanged;
 
   const TaskFormSection({
     Key? key,
     this.task,
     required this.titleController,
     required this.noteController,
-    required this.onDateTimeChanged,
+    required this.onDataChanged,
   }) : super(key: key);
 
   @override
@@ -30,197 +25,126 @@ class TaskFormSection extends StatefulWidget {
 }
 
 class _TaskFormSectionState extends State<TaskFormSection> {
-  DateTime? _selectedStartTime; // Variable locale pour la date/heure de début
-  DateTime? _selectedEndTime;   // Variable locale pour la date/heure de fin
+  DateTime? _start;
+  DateTime? _end;
+  int _duration = 0;
+  int _priority = 1;
 
   @override
   void initState() {
     super.initState();
-    // CORRECTION : Utilisation de task?.startDate et task?.endDate
-    _selectedStartTime = widget.task?.startDate;
-    _selectedEndTime = widget.task?.endDate;
+    _start = widget.task?.startDate;
+    _end = widget.task?.endDate;
+    _duration = widget.task?.workingDuration ?? 0;
+    _priority = widget.task?.priority ?? 1;
   }
 
-  /// Ouvre le sélecteur de date et heure
-  Future<void> _pickDateTime(BuildContext context, bool isStart) async {
-    DateTime initialDate = (isStart ? _selectedStartTime : _selectedEndTime) ?? DateTime.now();
-    
-    // Sélecteur de date
-    final DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: DateTime.now().subtract(const Duration(days: 365)), // Année passée
-      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),   // 5 ans dans le futur
-      builder: (context, child) {
-        return Theme(
-          data: ThemeData.light().copyWith(
-            primaryColor: MyColors.primaryColor,
-            colorScheme: ColorScheme.light(primary: MyColors.primaryColor),
-            buttonTheme: const ButtonThemeData(textTheme: ButtonTextTheme.primary),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (pickedDate != null) {
-      // Sélecteur d'heure
-      final TimeOfDay? pickedTime = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.fromDateTime(initialDate),
-        builder: (context, child) {
-          return Theme(
-            data: ThemeData.light().copyWith(
-              primaryColor: MyColors.primaryColor,
-              colorScheme: ColorScheme.light(primary: MyColors.primaryColor),
-              buttonTheme: const ButtonThemeData(textTheme: ButtonTextTheme.primary),
-            ),
-            child: child!,
-          );
-        },
-      );
-
-      if (pickedTime != null) {
-        final newDateTime = DateTime(
-          pickedDate.year,
-          pickedDate.month,
-          pickedDate.day,
-          pickedTime.hour,
-          pickedTime.minute,
-        );
-
-        setState(() {
-          if (isStart) {
-            _selectedStartTime = newDateTime;
-          } else {
-            _selectedEndTime = newDateTime;
-          }
-        });
-        
-        widget.onDateTimeChanged(_selectedStartTime, _selectedEndTime);
-      }
-    }
-  }
-
-  /// Crée un bouton de sélection de date/heure
-  Widget _buildDateTimeButton(
-      {required String title,
-      required DateTime? dateTime,
-      required bool isStart}) {
-    final String label = dateTime == null
-        ? MyString.chooseTime
-        : DateFormat('dd/MM/yyyy HH:mm').format(dateTime);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: MyColors.primaryColor, fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: () => _pickDateTime(context, isStart),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade300),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: dateTime == null ? Colors.grey : Colors.black87,
-                      ),
-                ),
-                Icon(
-                  CupertinoIcons.calendar,
-                  color: MyColors.primaryColor,
-                  size: 20,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+  void _sync() => widget.onDataChanged(_start, _end, _duration, _priority);
 
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Champ Titre 
-          Text(
-            MyString.titleOfTitleTextField,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: MyColors.primaryColor, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 8),
+          // TITRE
+          const Text("QU'ALLEZ-VOUS ACCOMPLIR ?", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.2)),
+          const SizedBox(height: 12),
           TextField(
             controller: widget.titleController,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             decoration: InputDecoration(
-              hintText: MyString.taskTitleHint,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              fillColor: Theme.of(context).cardColor,
-              filled: true,
+              hintText: "Titre de la tâche...",
+              border: UnderlineInputBorder(borderSide: BorderSide(color: MyColors.primaryColor.withOpacity(0.2))),
+              focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: MyColors.primaryColor, width: 2)),
             ),
           ),
           
-          const SizedBox(height: 20),
+          const SizedBox(height: 32),
 
-          // Sélecteur Heure de Début
-          _buildDateTimeButton(
-            title: MyString.startDate,
-            dateTime: _selectedStartTime,
-            isStart: true,
-          ),
-          
-          const SizedBox(height: 20),
-
-          // Sélecteur Heure de Fin
-          _buildDateTimeButton(
-            title: MyString.endDate,
-            dateTime: _selectedEndTime,
-            isStart: false,
+          // PRIORITÉ (UX: Chips colorés)
+          const Text("PRIORITÉ", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildPriorityChip("Basse", 0, Colors.green),
+              _buildPriorityChip("Moyenne", 1, Colors.orange),
+              _buildPriorityChip("Haute", 2, Colors.red),
+            ],
           ),
 
-          const SizedBox(height: 20),
-          
-          // Champ Note
-          Text(
-            MyString.addNote,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: MyColors.primaryColor, fontWeight: FontWeight.w600),
+          const SizedBox(height: 32),
+
+          // DURÉE Z (UX: Slider + Text)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("DURÉE ESTIMÉE (Z)", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+              Text("${_duration ~/ 60}h${(_duration % 60).toString().padLeft(2, '0')}", style: const TextStyle(fontWeight: FontWeight.bold, color: MyColors.primaryColor)),
+            ],
           ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: widget.noteController,
-            maxLines: 4,
-            decoration: InputDecoration(
-              hintText: MyString.addNoteHint,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              fillColor: Theme.of(context).cardColor,
-              filled: true,
-            ),
+          Slider(
+            value: _duration.toDouble(),
+            min: 0, max: 480, divisions: 32,
+            activeColor: MyColors.primaryColor,
+            onChanged: (v) {
+              setState(() => _duration = v.toInt());
+              _sync();
+            },
           ),
-          
-          const SizedBox(height: 80), 
+
+          const SizedBox(height: 32),
+
+          // PLAGE DE DATES (X-Y)
+          const Text("PÉRIODE (X -> Y)", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _buildDateTile("Début", _start, true)),
+              const SizedBox(width: 12),
+              Expanded(child: _buildDateTile("Fin", _end, false)),
+            ],
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPriorityChip(String label, int val, Color color) {
+    bool selected = _priority == val;
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      selectedColor: color.withOpacity(0.2),
+      onSelected: (s) {
+        setState(() => _priority = val);
+        _sync();
+      },
+    );
+  }
+
+  Widget _buildDateTile(String label, DateTime? date, bool isStart) {
+    return InkWell(
+      onTap: () async {
+        final d = await showDatePicker(context: context, initialDate: date ?? DateTime.now(), firstDate: DateTime.now().subtract(const Duration(days: 30)), lastDate: DateTime.now().add(const Duration(days: 365)));
+        if (d != null) {
+          setState(() => isStart ? _start = d : _end = d);
+          _sync();
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(date == null ? "Choisir" : DateFormat('dd MMM').format(date), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+          ],
+        ),
       ),
     );
   }
