@@ -4,6 +4,7 @@ import 'package:animate_do/animate_do.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/adapters.dart';
+import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
 
 import '../../../main.dart';
@@ -17,81 +18,101 @@ import 'task_widget.dart';
 class TaskListView extends StatelessWidget {
   const TaskListView({super.key});
 
-  int checkDoneTask(List<Task> task) {
-    int i = 0;
-    for (Task doneTasks in task) {
-      if (doneTasks.isCompleted) i++;
-    }
-    return i;
+  String _getDateHeader(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final taskDate = DateTime(date.year, date.month, date.day);
+
+    if (taskDate == today) return "Aujourd'hui";
+    if (taskDate == yesterday) return "Hier";
+    return DateFormat('EEE d MMM', 'fr_FR').format(date);
   }
 
   @override
   Widget build(BuildContext context) {
     final base = BaseWidget.of(context);
-    var textTheme = Theme.of(context).textTheme;
 
     return ValueListenableBuilder(
       valueListenable: base.dataStore.listenToTask(),
-      builder: (ctx, Box<Task> box, Widget? child) {
-        // 🎯 FILTRAGE PROFESSIONNEL : Uniquement les tâches principales (parentId == null)
+      builder: (ctx, Box<Task> box, _) {
+        // Uniquement tâches principales
         var tasks = box.values.where((t) => t.parentId == null).toList();
-
-        tasks.sort((a, b) {
-          if (a.isCompleted != b.isCompleted) return a.isCompleted ? 1 : -1;
-          return a.createdAtDate.compareTo(b.createdAtDate);
-        });
-
-        final double totalTasks = tasks.length.toDouble();
-        final int doneTasks = checkDoneTask(tasks);
+        
+        // 🎯 CALCUL DU POURCENTAGE GLOBAL
+        final int totalTasks = tasks.length;
+        final int doneTasks = tasks.where((t) => t.status == "Done").length;
         final double percentage = totalTasks > 0 ? (doneTasks / totalTasks) : 0.0;
+
+        // Tri par date décroissante
+        tasks.sort((a, b) => b.createdAtDate.compareTo(a.createdAtDate));
+
+        // Groupement par jour
+        Map<String, List<Task>> groupedTasks = {};
+        for (var task in tasks) {
+          String header = _getDateHeader(task.createdAtDate);
+          groupedTasks.putIfAbsent(header, () => []).add(task);
+        }
+
+        if (tasks.isEmpty) return _buildEmptyState();
 
         return Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           floatingActionButton: const FAB(),
-          body: SizedBox(
-            width: double.infinity,
-            height: double.infinity,
-            child: Column(
-              children: [
-                FadeInDown(
-                  duration: const Duration(milliseconds: 800),
-                  child: _buildHeader(percentage, doneTasks, tasks.length, textTheme),
+          body: Column(
+            children: [
+              // 🎯 RESTAURATION DU HEADER DE PROGRESSION
+              FadeInDown(
+                duration: const Duration(milliseconds: 800),
+                child: _buildGlobalProgressHeader(percentage, doneTasks, totalTasks),
+              ),
+              
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.only(top: 10, bottom: 80),
+                  itemCount: groupedTasks.length,
+                  itemBuilder: (context, index) {
+                    String dateHeader = groupedTasks.keys.elementAt(index);
+                    List<Task> dayTasks = groupedTasks[dateHeader]!;
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(24, 20, 20, 8),
+                          child: Text(
+                            dateHeader.toUpperCase(),
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.2),
+                          ),
+                        ),
+                        ...dayTasks.map((task) => FadeInLeft(
+                          duration: const Duration(milliseconds: 300),
+                          child: Dismissible(
+                            direction: DismissDirection.horizontal,
+                            onDismissed: (_) => base.dataStore.deleteTask(task: task),
+                            key: Key(task.id),
+                            child: TaskWidget(task: task),
+                          ),
+                        )).toList(),
+                      ],
+                    );
+                  },
                 ),
-                Expanded(
-                  child: tasks.isNotEmpty
-                      ? ListView.builder(
-                          physics: const BouncingScrollPhysics(),
-                          itemCount: tasks.length,
-                          itemBuilder: (context, index) {
-                            var task = tasks[index];
-                            return FadeInLeft(
-                              duration: const Duration(milliseconds: 500),
-                              child: Dismissible(
-                                direction: DismissDirection.horizontal,
-                                onDismissed: (_) => base.dataStore.deleteTask(task: task),
-                                key: Key(task.id), 
-                                child: TaskWidget(task: task),
-                              ),
-                            );
-                          },
-                        )
-                      : _buildEmptyState(),
-                )
-              ],
-            ),
+              ),
+            ],
           ),
         );
       }
     );
   }
 
-  Widget _buildHeader(double percentage, int done, int total, TextTheme textTheme) {
+  Widget _buildGlobalProgressHeader(double percentage, int done, int total) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(colors: MyColors.primaryGradientColor, begin: Alignment.topLeft, end: Alignment.bottomRight),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [BoxShadow(color: MyColors.primaryColor.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
       ),
       child: Row(
@@ -99,8 +120,8 @@ class TaskListView extends StatelessWidget {
           Stack(
             alignment: Alignment.center,
             children: [
-              SizedBox(width: 70, height: 70, child: CircularProgressIndicator(value: percentage, strokeWidth: 6, valueColor: const AlwaysStoppedAnimation(Colors.white), backgroundColor: Colors.white24)),
-              Text("${(percentage * 100).toInt()}%", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              SizedBox(width: 60, height: 60, child: CircularProgressIndicator(value: percentage, strokeWidth: 6, valueColor: const AlwaysStoppedAnimation(Colors.white), backgroundColor: Colors.white24)),
+              Text("${(percentage * 100).toInt()}%", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
             ],
           ),
           const SizedBox(width: 20),
@@ -108,9 +129,8 @@ class TaskListView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(MyString.mainTitle, style: textTheme.displayLarge?.copyWith(color: Colors.white, fontSize: 24)),
-                const SizedBox(height: 6),
-                Text("$done sur $total tâches principales", style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 15)),
+                const Text("Progrès Global", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                Text("$done sur $total tâches principales terminées", style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 13)),
               ],
             ),
           ),
@@ -120,12 +140,14 @@ class TaskListView extends StatelessWidget {
   }
 
   Widget _buildEmptyState() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Lottie.asset(lottieURL, width: 200, height: 200),
-        const Padding(padding: EdgeInsets.all(30.0), child: Text(MyString.doneAllTask, textAlign: TextAlign.center)),
-      ],
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Lottie.asset(lottieURL, width: 200),
+          const Text(MyString.doneAllTask),
+        ],
+      ),
     );
   }
 }

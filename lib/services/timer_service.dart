@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
-import 'package:sound_mode/sound_mode.dart'; // 🎯 Pour Android/iOS
+import 'package:sound_mode/sound_mode.dart'; 
 import 'package:sound_mode/utils/constants.dart';
 
 import '../models/task.dart';
@@ -60,41 +60,37 @@ class TimerService extends ChangeNotifier {
   }
 
   void _initNotifications() async {
-    const AndroidInitializationSettings android = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const DarwinInitializationSettings darwin = DarwinInitializationSettings(requestAlertPermission: true, requestBadgePermission: true, requestSoundPermission: true);
-    const LinuxInitializationSettings linux = LinuxInitializationSettings(defaultActionName: 'Ouvrir');
-    final InitializationSettings settings = InitializationSettings(android: android, iOS: darwin, linux: linux);
+    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const DarwinInitializationSettings initializationSettingsDarwin = DarwinInitializationSettings(requestAlertPermission: true, requestBadgePermission: true, requestSoundPermission: true);
+    const LinuxInitializationSettings initializationSettingsLinux = LinuxInitializationSettings(defaultActionName: 'Ouvrir');
+    final InitializationSettings settings = InitializationSettings(android: initializationSettingsAndroid, iOS: initializationSettingsDarwin, linux: initializationSettingsLinux);
     try { if (!kIsWeb && (Platform.isAndroid || Platform.isIOS || Platform.isLinux || Platform.isMacOS)) { await flutterLocalNotificationsPlugin.initialize(settings); } } catch (e) { debugPrint("Notification init failed: $e"); }
   }
 
-  // 🎯 TOGGLE DND SYSTÈME
+  // 🎯 AJOUT DE FORMATHMS
+  String formatHms(Duration d) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final hours = d.inHours.toString().padLeft(2, '0');
+    final minutes = twoDigits(d.inMinutes.remainder(60));
+    final seconds = twoDigits(d.inSeconds.remainder(60));
+    return "${hours}h${minutes}m${seconds}s";
+  }
+
   Future<void> toggleDoNotDisturb() async {
     _isDoNotDisturb = !_isDoNotDisturb;
-    
     if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
       try {
         if (_isDoNotDisturb) {
-          // Passe le téléphone en mode SILENCIEUX
           await (SoundMode as dynamic).setSoundMode("SILENT");
           _stopTictac();
         } else {
-          // Repasse le téléphone en mode NORMAL
           await (SoundMode as dynamic).setSoundMode("NORMAL");
           if (_isRunning) _startTictac();
         }
-      } catch (e) {
-        debugPrint("DND System Error: $e");
-      }
+      } catch (e) { debugPrint("DND Error: $e"); }
     } else {
-      // Fallback pour Windows/Linux/Web : Mute uniquement l'application
-      if (_isDoNotDisturb) {
-        _stopTictac();
-        _stopAlarm();
-      } else if (_isRunning) {
-        _startTictac();
-      }
+      if (_isDoNotDisturb) { _stopTictac(); _stopAlarm(); } else if (_isRunning) { _startTictac(); }
     }
-    
     notifyListeners();
   }
 
@@ -188,7 +184,7 @@ class TimerService extends ChangeNotifier {
     _stopTimerInternal();
     _isFinished = true;
     if (_currentTask != null) {
-      _currentTask!.status = "To Do"; // On remet en To Do pour répétition future
+      _currentTask!.status = "To Do"; 
       _currentTask!.isCompleted = true;
       _currentTask!.isOngoing = false;
       await _currentTask!.save();
@@ -231,7 +227,7 @@ class TimerService extends ChangeNotifier {
   }
 
   void _stopTimerInternal() { _timer?.cancel(); _isRunning = false; _stopTictac(); _stopAlarm(); }
-  void _startTictac() async { if (_isDoNotDisturb || await _tictacPlayer.state == PlayerState.playing) return; await _tictacPlayer.setSourceAsset(_tictacSound); await _tictacPlayer.resume(); }
+  void _startTictac() async { if (await _tictacPlayer.state == PlayerState.playing) return; await _tictacPlayer.setSourceAsset(_tictacSound); await _tictacPlayer.resume(); }
   void _stopTictac() async { await _tictacPlayer.stop(); }
   void _playAlarm() async { if (kIsWeb || _isDoNotDisturb) return; await _alarmPlayer.setSourceAsset(_alarmSound); await _alarmPlayer.resume(); }
   void _stopAlarm() async { await _alarmPlayer.stop(); }
