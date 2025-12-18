@@ -17,6 +17,7 @@ import '../utils/constanst.dart';
 import '../view/main_wrapper.dart'; 
 import '../view/clock/clock_wrapper.dart'; 
 import '../view/calendar/calendar_agenda_view.dart'; 
+import '../view/splash_view.dart'; // NOUVEAU
 import '../services/timer_service.dart'; 
 
 Future<void> main() async {
@@ -31,14 +32,11 @@ Future<void> main() async {
   Hive.registerAdapter<UserAuth>(UserAuthAdapter());
   Hive.registerAdapter<Alarm>(AlarmAdapter()); 
 
-  // 🎯 PERSISTANCE ACTIVÉE : La ligne de nettoyage forcé est supprimée.
-  // On utilise un try-catch pour vider SEULEMENT en cas d'erreur de schéma.
-
+  // Ouverture des boxes
   Box<Task> taskBox;
   try {
     taskBox = await Hive.openBox<Task>(Constants.taskBox);
   } catch (e) {
-    debugPrint("⚠️ Schéma Task obsolète. Réinitialisation...");
     final box = await Hive.openBox(Constants.taskBox);
     await box.clear();
     await box.close();
@@ -51,7 +49,6 @@ Future<void> main() async {
   try {
     sessionBox = await Hive.openBox<WorkSession>(Constants.sessionBox);
   } catch (e) {
-    debugPrint("⚠️ Schéma WorkSession obsolète. Réinitialisation...");
     final box = await Hive.openBox(Constants.sessionBox);
     await box.clear();
     await box.close();
@@ -115,8 +112,10 @@ class MyApp extends StatelessWidget {
             scaffoldBackgroundColor: const Color(0xFF121212),
             colorScheme: ColorScheme.fromSeed(seedColor: MyColors.primaryColor, brightness: Brightness.dark),
           ),
-          initialRoute: '/',
+          // 🎯 DÉMARRAGE SUR LA SPLASHVIEW
+          initialRoute: '/splash',
           routes: {
+            '/splash': (context) => const SplashView(),
             '/': (context) => const MainWrapper(),
             '/clock': (context) => const ClockWrapper(),
             '/calendar': (context) => const CalendarAgendaView(),
