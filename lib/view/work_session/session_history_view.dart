@@ -17,11 +17,12 @@ class SessionHistoryView extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        // 🎯 FIX: Retire le bouton back automatique
+        automaticallyImplyLeading: false,
         title: const Text("Historique d'Activité", style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         actions: [
-          // 🎯 FIX: Changement de l'icône par une icône existante
           IconButton(
             icon: const Icon(CupertinoIcons.trash_fill, color: Colors.red),
             onPressed: () => _confirmClearAll(context, dataStore),
@@ -45,12 +46,6 @@ class SessionHistoryView extends StatelessWidget {
               return Dismissible(
                 key: Key(session.id),
                 direction: DismissDirection.endToStart,
-                background: Container(
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.only(right: 20),
-                  color: Colors.red,
-                  child: const Icon(CupertinoIcons.delete, color: Colors.white),
-                ),
                 onDismissed: (_) => dataStore.deleteSession(session: session),
                 child: Card(
                   margin: const EdgeInsets.symmetric(vertical: 8),

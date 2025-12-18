@@ -17,14 +17,14 @@ class SessionTabView extends StatelessWidget {
   Widget build(BuildContext context) {
     final timerService = context.watch<TimerService>();
 
-    // 🎯 AUTO-REDIRECTION INTELLIGENTE : 
-    // On n'affiche le minuteur que si une tâche est active ET que l'utilisateur ne l'a pas minimisé
     if ((timerService.isRunning || timerService.currentTask != null) && !timerService.isTimerMinimized) {
-      return const TimerView(isFromHub: true); // On passe le flag pour autoriser le retour
+      return const TimerView(isFromHub: true); 
     }
 
     return Scaffold(
       appBar: AppBar(
+        // 🎯 FIX: Retire le bouton back automatique
+        automaticallyImplyLeading: false,
         title: const Text("Horloge", style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
@@ -33,7 +33,6 @@ class SessionTabView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 🎯 BANDEAU DE REPRISE : Si un timer tourne en fond, on propose d'y revenir
             if (timerService.currentTask != null && timerService.isTimerMinimized)
               _buildResumeBanner(context, timerService),
 

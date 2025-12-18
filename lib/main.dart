@@ -17,14 +17,13 @@ import '../utils/constanst.dart';
 import '../view/main_wrapper.dart'; 
 import '../view/clock/clock_wrapper.dart'; 
 import '../view/calendar/calendar_agenda_view.dart'; 
-import '../view/splash_view.dart'; // NOUVEAU
+import '../view/splash_view.dart'; 
 import '../services/timer_service.dart'; 
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
 
-  // Enregistrement des adaptateurs
   Hive.registerAdapter<Task>(TaskAdapter());
   Hive.registerAdapter<TaskStep>(TaskStepAdapter()); 
   Hive.registerAdapter<UserProfile>(UserProfileAdapter());
@@ -32,7 +31,6 @@ Future<void> main() async {
   Hive.registerAdapter<UserAuth>(UserAuthAdapter());
   Hive.registerAdapter<Alarm>(AlarmAdapter()); 
 
-  // Ouverture des boxes
   Box<Task> taskBox;
   try {
     taskBox = await Hive.openBox<Task>(Constants.taskBox);
@@ -94,25 +92,40 @@ class MyApp extends StatelessWidget {
       builder: (context, box, child) {
         final profile = base.dataStore.getLoggedInUserProfile() ?? UserProfile.defaultProfile();
         ThemeMode theme = profile.themeMode == 1 ? ThemeMode.dark : ThemeMode.light;
+
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'Todo Work Sessions',
           themeMode: theme, 
+          
+          // 🎯 THÈME CLAIR RESTAURÉ
           theme: ThemeData(
-            primaryColor: MyColors.primaryColor, 
-            useMaterial3: true, 
-            brightness: Brightness.light, 
+            primaryColor: MyColors.primaryColor,
+            useMaterial3: true,
+            brightness: Brightness.light,
             scaffoldBackgroundColor: Colors.white,
-            colorScheme: ColorScheme.fromSeed(seedColor: MyColors.primaryColor),
+            textTheme: const TextTheme(
+              displayLarge: TextStyle(color: MyColors.primaryColor, fontWeight: FontWeight.bold, fontSize: 35),
+              titleMedium: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w300),
+              displayMedium: TextStyle(color: Colors.white, fontSize: 21),
+            ),
           ),
+
+          // 🎯 THÈME SOMBRE RESTAURÉ
           darkTheme: ThemeData(
-            brightness: Brightness.dark, 
-            primaryColor: MyColors.primaryColor, 
-            useMaterial3: true, 
-            scaffoldBackgroundColor: const Color(0xFF121212),
-            colorScheme: ColorScheme.fromSeed(seedColor: MyColors.primaryColor, brightness: Brightness.dark),
+            brightness: Brightness.dark,
+            primaryColor: MyColors.primaryColor,
+            useMaterial3: true,
+            scaffoldBackgroundColor: const Color(0xFF121212), 
+            textTheme: const TextTheme(
+              displayLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 35),
+              titleMedium: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w300),
+              displayMedium: TextStyle(color: Colors.white, fontSize: 21),
+              titleSmall: TextStyle(color: Colors.white70, fontWeight: FontWeight.w500),
+              titleLarge: TextStyle(fontSize: 40, color: Colors.white, fontWeight: FontWeight.w300),
+            ),
           ),
-          // 🎯 DÉMARRAGE SUR LA SPLASHVIEW
+          
           initialRoute: '/splash',
           routes: {
             '/splash': (context) => const SplashView(),

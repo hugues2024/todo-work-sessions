@@ -18,6 +18,8 @@ class _HomeViewState extends State<HomeView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        // 🎯 FIX: Retire le bouton back automatique
+        automaticallyImplyLeading: false, 
         title: Text(
           MyString.mainTitle,
           style: Theme.of(context).textTheme.displayLarge?.copyWith(
@@ -30,7 +32,6 @@ class _HomeViewState extends State<HomeView> {
         ),
         elevation: 0,
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        // Les icônes de navigation sont retirées car elles sont désormais dans l'onglet Activité
       ),
       body: const TaskListView(),
     );

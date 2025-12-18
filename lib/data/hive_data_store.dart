@@ -7,63 +7,46 @@ import '../models/task.dart';
 import '../models/user_profile.dart'; 
 import '../models/work_session.dart';
 import '../models/user_auth.dart';
-import '../models/alarm.dart'; // NOUVEAU
+import '../models/alarm.dart'; 
 
-///
 class HiveDataStore {
   final Box<Task> taskBox; 
   final Box<WorkSession> sessionBox; 
   final Box<UserProfile> profileBox; 
   final Box<UserAuth> authBox; 
-  final Box<Alarm> alarmBox; // NOUVEAU
+  final Box<Alarm> alarmBox; 
+
+  static const String _profileKey = "user_profile_key";
 
   HiveDataStore(this.taskBox, this.sessionBox, this.profileBox, this.authBox, this.alarmBox);
 
-  // =========================================================================
-  // 🎯 GESTION DES TÂCHES (CRUD)
-  // =========================================================================
-
+  // --- TÂCHES ---
   Future<void> addTask({required Task task}) async { await taskBox.put(task.id, task); }
-  Future<Task?> getTask({required String id}) async { return taskBox.get(id); }
   Future<void> updateTask({required Task task}) async { await task.save(); }
   Future<void> deleteTask({required Task task}) async { await task.delete(); }
-  ValueListenable<Box<Task>> listenToTask() { return taskBox.listenable(); }
+  ValueListenable<Box<Task>> listenToTask() => taskBox.listenable();
   
-  // =========================================================================
-  // 👤 GESTION DU PROFIL
-  // =========================================================================
+  // --- PROFIL ---
+  UserProfile? getLoggedInUserProfile() => profileBox.get(_profileKey);
+  Future<void> saveUserProfile(UserProfile profile) async { await profileBox.put(_profileKey, profile); }
+  ValueListenable<Box<UserProfile>> listenToUserProfile() => profileBox.listenable();
 
-  UserProfile? getLoggedInUserProfile() {
-    final loggedInUser = getLoggedInUser();
-    if (loggedInUser.email == 'Utilisateur') return null; 
-    return profileBox.get(loggedInUser.email);
-  }
-  Future<void> saveUserProfile(UserProfile profile) async {
-    final loggedInUser = getLoggedInUser();
-    if (loggedInUser.email != 'Utilisateur') await profileBox.put(loggedInUser.email, profile);
-  }
-  ValueListenable<Box<UserProfile>> listenToUserProfile() { return profileBox.listenable(); }
-
-  // =========================================================================
-  // ⏱️ GESTION DES SESSIONS DE TRAVAIL
-  // =========================================================================
-
+  // --- SESSIONS ---
   Future<void> addSession({required WorkSession session}) async { await sessionBox.put(session.id, session); }
   Future<void> deleteSession({required WorkSession session}) async { await session.delete(); }
-  ValueListenable<Box<WorkSession>> listenToSessions() { return sessionBox.listenable(); }
+  ValueListenable<Box<WorkSession>> listenToSessions() => sessionBox.listenable();
 
-  // =========================================================================
-  // 🔔 GESTION DES ALARMES (NOUVEAU)
-  // =========================================================================
-
+  // --- ALARMES ---
   Future<void> addAlarm(Alarm alarm) async { await alarmBox.put(alarm.id, alarm); }
   Future<void> deleteAlarm(Alarm alarm) async { await alarm.delete(); }
-  ValueListenable<Box<Alarm>> listenToAlarms() { return alarmBox.listenable(); }
+  ValueListenable<Box<Alarm>> listenToAlarms() => alarmBox.listenable();
 
-  // =========================================================================
-  // 🔐 GESTION DE L'AUTHENTIFICATION
-  // =========================================================================
-  
+  // --- AUTH ---
+  // 🎯 RESTAURATION DE LA MÉTHODE isUserLoggedIn
+  bool isUserLoggedIn() {
+    return authBox.values.any((user) => user.isLoggedIn);
+  }
+
   Future<bool> loginUser(String email, String password) async {
     final user = authBox.get(email);
     if (user != null && user.password == password) {
@@ -81,7 +64,6 @@ class HiveDataStore {
     await authBox.put(email, newUser);
     return true;
   }
-  bool isUserLoggedIn() { return authBox.values.any((user) => user.isLoggedIn); }
   UserAuth getLoggedInUser() {
     final loggedIn = authBox.values.where((user) => user.isLoggedIn);
     if (loggedIn.isNotEmpty) return loggedIn.first;

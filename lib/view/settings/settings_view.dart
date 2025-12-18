@@ -19,25 +19,9 @@ class SettingsView extends StatelessWidget {
 
   void _updateSettings(BuildContext context, Box<UserProfile> box, Function(UserProfile) updateAction) async {
     final dataStore = BaseWidget.of(context).dataStore;
-    UserProfile? profile = dataStore.getLoggedInUserProfile();
-    
-    if (profile == null) {
-      if (box.isNotEmpty) {
-        profile = box.getAt(0);
-      } else {
-        profile = UserProfile.defaultProfile();
-        await box.add(profile);
-      }
-    }
-    
-    if (profile != null) {
-      updateAction(profile);
-      if (profile.isInBox) {
-        await profile.save();
-      } else {
-        await dataStore.saveUserProfile(profile);
-      }
-    }
+    UserProfile profile = dataStore.getLoggedInUserProfile() ?? (box.isNotEmpty ? box.getAt(0)! : UserProfile.defaultProfile());
+    updateAction(profile);
+    await dataStore.saveUserProfile(profile);
   }
 
   @override
@@ -49,10 +33,14 @@ class SettingsView extends StatelessWidget {
       builder: (context, box, child) {
         final UserProfile? loggedInProfile = base.dataStore.getLoggedInUserProfile();
         final UserProfile profile = loggedInProfile ?? (box.isNotEmpty ? box.getAt(0)! : UserProfile.defaultProfile());
-        final bool isUserConnected = loggedInProfile != null;
+        
+        // 🎯 FIX: Vérification réelle de la connexion pour afficher ou non "Se déconnecter"
+        final loggedInUser = base.dataStore.getLoggedInUser();
+        final bool isRealUserConnected = loggedInUser.email != 'Utilisateur';
 
         return Scaffold(
           appBar: AppBar(
+            automaticallyImplyLeading: false,
             title: const Text("Paramètres", style: TextStyle(fontWeight: FontWeight.bold)),
             backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             elevation: 0,
@@ -74,14 +62,14 @@ class SettingsView extends StatelessWidget {
               SwitchListTile(
                 title: const Text("Notifications"),
                 value: profile.notificationsEnabled,
-                activeColor: MyColors.primaryColor, // 🎯 FIX: Couleur appliquée ici
+                activeColor: MyColors.primaryColor,
                 onChanged: (v) => _updateSettings(context, box, (p) => p.notificationsEnabled = v),
               ),
               ListTile(
                 leading: const Icon(CupertinoIcons.moon_stars, color: MyColors.primaryColor),
                 title: const Text("Mode Sombre"),
                 trailing: CupertinoSwitch(
-                  activeColor: MyColors.primaryColor, // 🎯 Identique au toggle notifications
+                  activeColor: MyColors.primaryColor,
                   value: profile.themeMode == 1,
                   onChanged: (v) => _updateSettings(context, box, (p) => p.themeMode = v ? 1 : 0),
                 ),
@@ -99,15 +87,20 @@ class SettingsView extends StatelessWidget {
               const SizedBox(height: 40),
               
               _buildSectionHeader("COMPTE"),
-              if (isUserConnected)
+              // 🎯 N'affiche Se déconnecter QUE si un vrai compte est connecté
+              if (isRealUserConnected)
                 ListTile(
                   leading: const Icon(Icons.logout, color: Colors.red),
                   title: const Text("Se déconnecter"),
                   onTap: () async {
                     await base.dataStore.logout();
-                    Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) => const LoginView(canPop: true)), (route) => false);
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (context) => const LoginView(canPop: true)), 
+                      (route) => false
+                    );
                   },
                 ),
+              
               ListTile(
                 leading: const Icon(CupertinoIcons.trash, color: Colors.red),
                 title: const Text("Effacer les données", style: TextStyle(color: Colors.red)),
