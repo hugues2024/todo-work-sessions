@@ -1,6 +1,7 @@
 // lib/services/timer_service.dart
 
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -56,30 +57,46 @@ class TimerService extends ChangeNotifier {
 
   void _initNotifications() async {
     const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
+    
+    // 🎯 AJOUT DARWIN (iOS/macOS)
+    const DarwinInitializationSettings initializationSettingsDarwin = DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
+
     const LinuxInitializationSettings initializationSettingsLinux = LinuxInitializationSettings(defaultActionName: 'Ouvrir');
-    final InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid, linux: initializationSettingsLinux);
-    try { await flutterLocalNotificationsPlugin.initialize(initializationSettings); } catch (e) { debugPrint("Error init notifications: $e"); }
+
+    final InitializationSettings initializationSettings = InitializationSettings(
+        android: initializationSettingsAndroid,
+        iOS: initializationSettingsDarwin,
+        linux: initializationSettingsLinux,
+    );
+    
+    try {
+      // Sur Windows, le plugin peut nécessiter des dépendances supplémentaires. 
+      // On wrap l'initialisation pour éviter un crash au démarrage sur Windows.
+      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS || Platform.isLinux || Platform.isMacOS)) {
+        await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+      }
+    } catch (e) {
+      debugPrint("Notification init bypassed or failed on this platform: $e");
+    }
   }
 
   void setTabIndex(int index) { _currentTabIndex = index; notifyListeners(); }
   void minimizeTimer() { _isTimerMinimized = true; notifyListeners(); }
   void restoreTimer() { _isTimerMinimized = false; notifyListeners(); }
 
-  // 🎯 DÉFINITION MANUELLE DU MINUTEUR
   void setManualTimer(Duration duration) {
     _stopTimerInternal();
-    _currentTask = null; // Pas de tâche liée
+    _currentTask = null;
     _totalDuration = duration;
     _remainingDuration = duration;
     _elapsedSeconds = 0;
     _isFinished = false;
     _isTimerMinimized = false;
-    
-    _activeSession = WorkSession.create(
-      title: "Session Personnelle",
-      isPersonal: true,
-    );
-    
+    _activeSession = WorkSession.create(title: "Session Personnelle", isPersonal: true);
     notifyListeners();
   }
 
@@ -179,8 +196,15 @@ class TimerService extends ChangeNotifier {
   void _stopAlarm() async { await _alarmPlayer.stop(); }
 
   Future<void> _showNotification(String title, String body) async {
+    // 🎯 FIX: Vérification plateforme avant notification pour éviter crash Windows
+    if (kIsWeb || ! (Platform.isAndroid || Platform.isIOS || Platform.isLinux || Platform.isMacOS)) return;
+
     const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails('timer_channel', 'Minuteur', importance: Importance.max, priority: Priority.high);
     const NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
-    await flutterLocalNotificationsPlugin.show(_currentTask?.hashCode ?? 0, title, body, platformChannelSpecifics);
+    try {
+      await flutterLocalNotificationsPlugin.show(_currentTask?.hashCode ?? 0, title, body, platformChannelSpecifics);
+    } catch (e) {
+      debugPrint("Notification failed on this platform: $e");
+    }
   }
 }
