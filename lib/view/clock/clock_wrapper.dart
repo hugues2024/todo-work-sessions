@@ -17,7 +17,8 @@ class ClockWrapper extends StatefulWidget {
 }
 
 class _ClockWrapperState extends State<ClockWrapper> {
-  int _currentIndex = 2; // 🎯 Commence par l'onglet Minuteur (Timer) comme dans la capture
+  int _currentIndex =
+      2; // 🎯 Commence par l'onglet Minuteur (Timer) comme dans la capture
 
   @override
   Widget build(BuildContext context) {
@@ -38,8 +39,10 @@ class _ClockWrapperState extends State<ClockWrapper> {
 
   Widget _buildBottomNavBar(BuildContext context) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final Color selectedColor = isDarkMode ? Colors.white : MyColors.primaryColor;
-    final Color unselectedColor = isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600;
+    final Color selectedColor =
+        isDarkMode ? Colors.white : MyColors.primaryColor;
+    final Color unselectedColor =
+        isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600;
 
     return BottomNavigationBar(
       elevation: 5,
@@ -52,25 +55,26 @@ class _ClockWrapperState extends State<ClockWrapper> {
       },
       selectedItemColor: selectedColor,
       unselectedItemColor: unselectedColor,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor, // Utilise la couleur de fond de l'appli (blanc/sombre)
+      backgroundColor: Theme.of(context)
+          .scaffoldBackgroundColor, // Utilise la couleur de fond de l'appli (blanc/sombre)
       showUnselectedLabels: true,
       items: [
         BottomNavigationBarItem(
           icon: Icon(CupertinoIcons.bell_fill, size: 22),
-          label: 'Alarm',
+          label: 'Alarme',
         ),
         BottomNavigationBarItem(
           icon: Icon(CupertinoIcons.globe, size: 22),
-          label: 'World Clock',
+          label: 'Horloge Mondiale',
         ),
         BottomNavigationBarItem(
           // Icône spécifique au minuteur (sablier ou chronomètre)
           icon: Icon(CupertinoIcons.hourglass, size: 22),
-          label: 'Timer',
+          label: 'Minuteur',
         ),
         BottomNavigationBarItem(
           icon: Icon(CupertinoIcons.stopwatch_fill, size: 22),
-          label: 'Stopwatch',
+          label: 'Chronomètre',
         ),
       ],
     );

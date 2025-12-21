@@ -1,42 +1,59 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
 android {
     namespace = "com.example.todo_work_sessions"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = "27.3.13750724";
+    
+    // MIS À JOUR : Passage à 36 pour satisfaire les dépendances récentes
+    compileSdk = 36 
+    ndkVersion = flutter.ndkVersion 
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        
+        // Active le support des fonctions Java 8+ pour les anciens appareils
+        isCoreLibraryDesugaringEnabled = true 
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        jvmTarget = "17" 
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.todo_work_sessions"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        
+        // FIX : Forcé à 21 pour assurer le support de coreLibraryDesugaring
+        minSdk = flutter.minSdkVersion 
+        
+        // MIS À JOUR : Doit correspondre au compileSdk pour éviter les conflits
+        targetSdk = 36 
+        
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        // Nécessaire car le projet dépasse la limite des 64k méthodes (Multidex)
+        multiDexEnabled = true
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // Pour tester ton APK release sans clé de signature privée pour l'instant
             signingConfig = signingConfigs.getByName("debug")
+            
+            // Optimisations optionnelles
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
+}
+
+dependencies {
+    // Permet d'utiliser des fonctionnalités Java modernes sur des versions Android anciennes
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
 
 flutter {
